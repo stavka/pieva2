@@ -138,8 +138,13 @@ class OSCThread(threading.Thread):
     def pairing_handler(addr, tags, stuff, source):
         msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
         print "Got pairing message: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
-                
-    
+        self.paired = 1 
+               
+        print "Subscribing..."
+        subreq = OSC.OSCMessage("/MashMachine/Global/subscribeObjectsID")
+        #  /MashMachine/Global/subscribeObjectsPosition
+        subreq.append(listen_address[0])
+        self.c2.send(subreq)
     ################
     
     
@@ -183,27 +188,22 @@ class OSCThread(threading.Thread):
                 try:
                     print "Pairing..."
                     subreq = OSC.OSCMessage("/MashMachine/Global/makePairing")
-                    subreq.append("localhost")
-                    subreq.append(54321)
+                    subreq.append(listen_address[0])
+                    subreq.append(listen_address[1])
                     self.c2.send(subreq)
-                    #time.sleep(0.5)
 
-                    print "Subscribing..."
-                    subreq = OSC.OSCMessage("/MashMachine/Global/subscribeObjectsID")
-                    #  /MashMachine/Global/subscribeObjectsPosition
-                    subreq.append("localhost")
-                    self.c2.send(subreq)
-                    self.paired = 1
-                    ## TODO really check if pairing message was received
-                    self.paired = 2
+                    
                 except(OSC.OSCClientError):
-                    print "Pairing or Subscribing failed.."
-                    tries -=1
-                    time.sleep(1)
+                    print "Pairing or Subscribing failed.."   
+                time.sleep(1)
+                tries -=1
         except(KeyboardInterrupt):
             print "Continue without pairing.."
             self.paired = 2
-            #raise
+
+        if (tries==0):
+            print "Continue without pairing.."
+            self.paired = 2
         
     def join(self, timeout=None):
         self.stoprequest.set()
