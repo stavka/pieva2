@@ -118,7 +118,7 @@ targetFPS = 24
 targetFrameTime = 1./targetFPS
 timeCounter = int(random.random() * 65535)
 
-currentEffect = effects.Effect(width,height)
+currentEffect = effects.Effect(mainPalette,0)
 
 
 #dispatcher = dispatcher.Dispatcher()
@@ -158,7 +158,10 @@ class OSCThread(threading.Thread):
         print "Registered Callback-functions:"
         for addr in self.s.getOSCAddressSpace():
             print addr
-            
+        
+        print "\nStarting OSCServer. Use ctrl-C to quit."
+        self.st = threading.Thread(target=self.s.serve_forever)
+        self.st.start()  
             
         self.c2 = OSC.OSCClient()
         self.c2.connect(send_address)
@@ -185,11 +188,11 @@ class OSCThread(threading.Thread):
                     subreq.append("localhost")
                     self.c2.send(subreq)
                     self.paired = 1
-                    ## todo really check if pairing message was received
+                    ## TODO really check if pairing message was received
                     self.paired = 2
                 except(OSC.OSCClientError):
                     print "Pairing or Subscribing failed.."
-                    tries = tries - 1
+                    tries -=1
                     time.sleep(1)
         except(KeyboardInterrupt):
             print "Continue without pairing.."
@@ -213,10 +216,6 @@ class OSCThread(threading.Thread):
 
         try:
             print "Starting OSC thread..."
-
-            print "\nStarting OSCServer. Use ctrl-C to quit."
-            self.st = threading.Thread(target=self.s.serve_forever)
-            self.st.start()
     
             while not self.stoprequest.isSet():
                 #check messages
@@ -238,13 +237,13 @@ def main():
         
         oscThread = OSCThread(send_address, listen_address)
         oscThread.start()
+        print "Paired: ", oscThread.paired
 
         print("eina.. Control+C to stop")
+        timeCounter = int(random.random() * 65535)
 
         while True:
-            startTime = time.time()
-            #global paired
-            print "Paired: ", oscThread.paired
+            startTime = time.time()          
             if oscThread.paired == 2 or oscThread.paired == 0:
                 screen.render(width, height, timeCounter/640., [grass, sun], mainPalette)
                 endTime = time.time()
@@ -254,6 +253,7 @@ def main():
                     #    print("late!", timeToWait)
                     timeToWait = 0
                 time.sleep(timeToWait)
+                timeCounter +=1
             else:
                 global currentEffect
                 bitmap = currentEffect.drawFrame(width,height)
