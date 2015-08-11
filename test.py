@@ -50,7 +50,8 @@ parser.add_argument("testSection", type=int, action="store", default=None, nargs
 parser.add_argument("--server", action="store", default=None, help="additional OPC server for debug purposes")
 parser.add_argument("--X", action="store", default=None, help="Fill one corner of the screen")
 parser.add_argument("--palette", action="store", default=None, type=open, help="Cycle a palette")
-parser.add_argument("--image", action="store", default=None, help="additional OPC server for debug purposes")
+parser.add_argument("--image", action="store", default=None, help="bitmap")
+parser.add_argument("--A", action="store", default=None, help="annimation")
 
 cliargs = parser.parse_args()
 
@@ -73,6 +74,57 @@ else:
 print "Control-C to interrupt"
 
 #~ print testPattern(sections[0]['pattern'])
+
+if None != cliargs.A:
+    
+    
+    
+    bitmap = np.zeros([140,140])
+    screen = Screen(sections)
+    screen.send(bitmap)
+    delay = 0.1
+
+    if cliargs.A == '1':
+        for x in range(140):
+            for y in range(140):
+                bitmap[x][y]=0x00ffffff
+            screen.send(bitmap)
+            time.sleep(delay)
+    elif cliargs.A == '2':
+        for x in range(140):
+            for y in range(140):
+                bitmap[x][y]=0x0000ff
+                if x>8:
+                    bitmap[x-8][y]=0x000000
+                    bitmap[x-7][y]=0x002222
+                    bitmap[x-6][y]=0x004444
+                    bitmap[x-5][y]=0x006666
+            screen.send(bitmap)
+            time.sleep(delay)
+    elif cliargs.A == '3':
+        for r in range(70):
+            for i in range(10):
+                bitmap[70+r][70+i]=0xffffff
+                bitmap[70-r][70+i]=0xffffff
+                bitmap[70+i][70+r]=0xffffff
+                bitmap[70+i][70-r]=0xffffff
+            screen.send(bitmap)
+            time.sleep(delay)
+
+    elif cliargs.A == '4':
+        center = 70
+        for i in range(center):
+            for y in range(-i,i):
+                bitmap[center+y][center+i] =  0xffffff
+                bitmap[center+i][center+y] =  0xffffff
+                bitmap[center-i][center+y] =  0xffffff
+                bitmap[center+y][center-i] =  0xffffff
+            screen.send(bitmap)
+            time.sleep(0.1)
+
+    print "done"
+    exit(0)
+
 
 if None != cliargs.X:
     bitmap = np.zeros([140,140])
