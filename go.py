@@ -272,7 +272,7 @@ def main():
         #s.close()
         #print "Waiting for Server-thread to finish"
         #st.join()
-        print "Trying to stop OSC Thread"
+        print "Trying to stop OSC Thread..."
         oscThread.join()
         #print "Closing OSCClient"
         #c.close()
