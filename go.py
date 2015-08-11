@@ -131,89 +131,101 @@ currentEffect = effects.Effect(width,height)
 #server.serve_forever()
 
 
-
-
 listen_address = ('localhost', 54321)
 send_address = ('localhost', 12345)
 paired = 0
 
-def oscThreadFunction(send_address, listen_address):
-
-
-    try:
-        print "Starting OSC thread..."
+class OSCThread(threading.Thread):
     
-        s = OSC.ThreadingOSCServer(listen_address)#, c)#, return_port=54321)
-
-        print s
-                
-        # Set Server to return errors as OSCMessages to "/error"
-        s.setSrvErrorPrefix("/error")
+    def __init__(self, send_address, listen_address):
+        super(OSCThread, self).__init__()
+        self.stoprequest = threading.Event()
+        self.s = OSC.ThreadingOSCServer(listen_address)
+                # Set Server to return errors as OSCMessages to "/error"
+        self.s.setSrvErrorPrefix("/error")
         # Set Server to reply to server-info requests with OSCMessages to "/serverinfo"
-        s.setSrvInfoPrefix("/serverinfo")
+        self.s.setSrvInfoPrefix("/serverinfo")
 
         # this registers a 'default' handler (for unmatched messages),
         # an /'error' handler, an '/info' handler.
         # And, if the client supports it, a '/subscribe' & '/unsubscribe' handler
-        s.addDefaultHandlers()
+        self.s.addDefaultHandlers()
 
-        s.addMsgHandler("default", printing_handler)
+        self.s.addMsgHandler("default", printing_handler)
         #s.addMsgHandler("/MM_Remote/Control/activeObjectsID", pallete_handler)
-        s.addMsgHandler("/MM_Remote/Control/activeObjectsPosition", pallete_handler)
+        self.s.addMsgHandler("/MM_Remote/Control/activeObjectsPosition", pallete_handler)
 
         print "Registered Callback-functions:"
-        for addr in s.getOSCAddressSpace():
+        for addr in self.s.getOSCAddressSpace():
             print addr
-
-        print "\nStarting OSCServer. Use ctrl-C to quit."
-        st = threading.Thread(target=s.serve_forever)
-        st.start()
-
-        c2 = OSC.OSCClient()
-        c2.connect(send_address)
+            
+            
+        self.c2 = OSC.OSCClient()
+        self.c2.connect(send_address)
         #subreq = OSC.OSCMessage("/MashMachine/Control/getActiveObjectsPosition")
 
 
         tries = 10
-        global paired
+        #global paired
+        self.paired = 0
         
         try:
-            while paired == 0 and tries > 0:
+            while self.paired == 0 and tries > 0:
                 try:
                     print "Pairing..."
                     subreq = OSC.OSCMessage("/MashMachine/Global/makePairing")
                     subreq.append("localhost")
                     subreq.append(54321)
-                    c2.send(subreq)
+                    self.c2.send(subreq)
                     #time.sleep(0.5)
 
                     print "Subscribing..."
                     subreq = OSC.OSCMessage("/MashMachine/Global/subscribeObjectsID")
                     #  /MashMachine/Global/subscribeObjectsPosition
                     subreq.append("localhost")
-                    c2.send(subreq)
-                    paired = 1
+                    self.c2.send(subreq)
+                    self.paired = 1
+                    ## todo really check if pairing message was received
+                    self.paired = 2
                 except(OSC.OSCClientError):
                     print "Pairing or Subscribing failed.."
                     tries = tries - 1
                     time.sleep(1)
         except(KeyboardInterrupt):
             print "Continue without pairing.."
-            paired = 2
-            raise
-
-        while 1:
-            #check messages
-            time.sleep(0.5)
-            print "Sleeping..."
-
-    except (KeyboardInterrupt, OSC.OSCClientError, SystemExit):
+            self.paired = 2
+            #raise
+        
+    def join(self, timeout=None):
+        self.stoprequest.set()
+        self.close_threads()
+        super(OSCThread, self).join(timeout)
+        
+    def close_threads(self):
         print "\nClosing OSCServer."
-        s.close()
+        self.s.close()
         print "Waiting for Server-thread to finish"
-        st.join()
-        print "OSC Done"
-        raise
+        self.st.join()
+        print "OSC Server shutdown Done"
+
+    def run(self):
+
+
+        try:
+            print "Starting OSC thread..."
+
+            print "\nStarting OSCServer. Use ctrl-C to quit."
+            self.st = threading.Thread(target=self.s.serve_forever)
+            self.st.start()
+    
+            while not self.stoprequest.isSet():
+                #check messages
+                time.sleep(0.5)
+                print "Sleeping..."
+    
+        except (KeyboardInterrupt, OSC.OSCClientError, SystemExit):
+            self.close_threads()
+            #raise
 
 
 def main():
@@ -222,15 +234,18 @@ def main():
     
     try:
     
-        oscThread = threading.Thread(target = oscThreadFunction, args = (send_address, listen_address ))
+        #oscThread = threading.Thread(target = oscThreadFunction, args = (send_address, listen_address ))
+        
+        oscThread = OSCThread(send_address, listen_address)
         oscThread.start()
 
         print("eina.. Control+C to stop")
 
         while True:
             startTime = time.time()
-            global paired
-            if paired == 2:
+            #global paired
+            print "Paired: ", oscThread.paired
+            if oscThread.paired == 2 or oscThread.paired == 0:
                 screen.render(width, height, timeCounter/640., [grass, sun], mainPalette)
                 endTime = time.time()
                 timeToWait = targetFrameTime - (endTime - startTime)
@@ -251,6 +266,7 @@ def main():
         #s.close()
         #print "Waiting for Server-thread to finish"
         #st.join()
+        print "Trying to stop OSC Thread"
         oscThread.join()
         #print "Closing OSCClient"
         #c.close()
