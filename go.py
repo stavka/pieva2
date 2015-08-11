@@ -21,42 +21,6 @@ pinkPalette = ColorPalette(CSVfilename="palettes/pink")
 mainPalette = greenPalette
 
 
-########### pyosc stuff
-# define a message-handler function for the server to call.
-def printing_handler(addr, tags, stuff, source):
-    msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
-    print "OSCServer Got: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
-            
-            # send a reply to the client.
-    msg = OSC.OSCMessage("/printed")
-    msg.append(msg_string)
-    return msg
-
-# define a message-handler function for the server to call.
-def pallete_handler(addr, tags, stuff, source):
-    msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
-    print "PHOSCServer Got: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
-    
-
-    global mainPalette
-    global greenPalette
-    global rainbowPalette
-    global pinkPalette
-    if (stuff[0] == 0):
-        print "Switching palette to green"
-        mainPalette = greenPalette
-        display_img('palettes/test.png')
-
-    if (stuff[0] == 1):
-        print "Switching palette to rainbow"
-        mainPalette = rainbowPalette
-    if (stuff[0] == 2):
-        print "Switching palette to pink"
-        mainPalette = pinkPalette
-
-#    return msg
-
-################
 
 
 class NoiseParams:
@@ -137,6 +101,48 @@ paired = 0
 
 class OSCThread(threading.Thread):
     
+    ########### pyosc stuff
+    # define a message-handler function for the server to call.
+    def printing_handler(addr, tags, stuff, source):
+        msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
+        print "OSCServer Got: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
+                
+        # send a reply to the client.
+        msg = OSC.OSCMessage("/printed")
+        msg.append(msg_string)
+        return msg
+    
+    # define a message-handler function for the server to call.
+    def pallete_handler(addr, tags, stuff, source):
+        msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
+        print "PHOSCServer Got: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
+        
+    
+        global mainPalette
+        global greenPalette
+        global rainbowPalette
+        global pinkPalette
+        if (stuff[0] == 0):
+            print "Switching palette to green"
+            mainPalette = greenPalette
+            display_img('palettes/test.png')
+    
+        if (stuff[0] == 1):
+            print "Switching palette to rainbow"
+            mainPalette = rainbowPalette
+        if (stuff[0] == 2):
+            print "Switching palette to pink"
+            mainPalette = pinkPalette
+            
+            
+    def pairing_handler(addr, tags, stuff, source):
+        msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
+        print "Got pairing message: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
+                
+    
+    ################
+    
+    
     def __init__(self, send_address, listen_address):
         super(OSCThread, self).__init__()
         self.stoprequest = threading.Event()
@@ -151,9 +157,10 @@ class OSCThread(threading.Thread):
         # And, if the client supports it, a '/subscribe' & '/unsubscribe' handler
         self.s.addDefaultHandlers()
 
-        self.s.addMsgHandler("default", printing_handler)
+        self.s.addMsgHandler("default", self.printing_handler)
         #s.addMsgHandler("/MM_Remote/Control/activeObjectsID", pallete_handler)
-        self.s.addMsgHandler("/MM_Remote/Control/activeObjectsPosition", pallete_handler)
+        self.s.addMsgHandler("/MM_Remote/Control/activeObjectsPosition", self.pallete_handler)
+        self.s.addMsgHandler("/MM_Remote/Control/pairing", self.pairing_handler)
 
         print "Registered Callback-functions:"
         for addr in self.s.getOSCAddressSpace():
@@ -169,7 +176,6 @@ class OSCThread(threading.Thread):
 
 
         tries = 10
-        #global paired
         self.paired = 0
         
         try:
