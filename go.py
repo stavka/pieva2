@@ -9,6 +9,56 @@ import fastopc as opc
 import random
 from core import NoiseGenerator
 
+import OSC
+import threading
+import sys
+import effects
+
+
+greenPalette = ColorPalette(CSVfilename="palettes/green_grass")
+rainbowPalette = ColorPalette(CSVfilename="palettes/rainbow")
+pinkPalette = ColorPalette(CSVfilename="palettes/pink")
+mainPalette = greenPalette
+
+
+########### pyosc stuff
+# define a message-handler function for the server to call.
+def printing_handler(addr, tags, stuff, source):
+    msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
+    print "OSCServer Got: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
+            
+            # send a reply to the client.
+    msg = OSC.OSCMessage("/printed")
+    msg.append(msg_string)
+    return msg
+
+# define a message-handler function for the server to call.
+def pallete_handler(addr, tags, stuff, source):
+    msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
+    print "PHOSCServer Got: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
+    
+
+    global mainPalette
+    global greenPalette
+    global rainbowPalette
+    global pinkPalette
+    if (stuff[0] == 0):
+        print "Switching palette to green"
+        mainPalette = greenPalette
+        display_img('palettes/test.png')
+
+    if (stuff[0] == 1):
+        print "Switching palette to rainbow"
+        mainPalette = rainbowPalette
+    if (stuff[0] == 2):
+        print "Switching palette to pink"
+        mainPalette = pinkPalette
+
+#    return msg
+
+################
+
+
 class NoiseParams:
     octaves = 1
     persistence = 0.5
@@ -29,7 +79,12 @@ class NoiseParams:
         self.amplitude = amplitude
         self.offset = offset
         
-paletteFileCSV="palettes/green_grass"
+#paletteFileCSV="palettes/green_grass"#
+#paletteFileCSV="palettes/rainbow"
+#paletteFileCSV="palettes/pink"
+#mainPalette = ColorPalette(CSVfilename=paletteFileCSV)
+
+
 
 width = 140
 height = 140
@@ -54,23 +109,154 @@ grass = NoiseParams(
     amplitude = 120, 
     offset = 120)
 
-mainPalette = ColorPalette(CSVfilename=paletteFileCSV)
 
-screen = Screen(sections)#, ['127.0.0.1:7891'])
+
+screen = Screen(sections, ['127.0.0.1:7891'])
 screen.dimm(0)
 
 targetFPS = 24
 targetFrameTime = 1./targetFPS
 timeCounter = int(random.random() * 65535)
-print("eina.. Control+C to stop")
-while True:
-    startTime = time.time()
-    screen.render(width, height, timeCounter/640., [grass, sun], mainPalette)
-    endTime = time.time()
-    timeToWait = targetFrameTime - (endTime - startTime)
-    print"Frame time: ", (endTime - startTime)
-    if timeToWait < 0:
-        print("late!", timeToWait)
-        timeToWait = 0
-    time.sleep(timeToWait)
-    timeCounter +=1
+
+currentEffect = effects.Effect(width,height)
+
+
+#dispatcher = dispatcher.Dispatcher()
+#dispatcher.map("/MM_Remote/Control/objectPosition", set_pallete, "Set Pallete: " )
+#dispatcher.map("/volume", set_pallete, "Pallete")
+
+                
+#server = osc_server.ThreadingOSCUDPServer(  ('127.0.0.1', 54321), dispatcher)
+#print("Serving on {}".format(server.server_address))
+#server.serve_forever()
+
+
+
+
+listen_address = ('localhost', 54321)
+send_address = ('localhost', 12345)
+paired = 0
+
+def oscThreadFunction(send_address, listen_address):
+
+
+    try:
+        print "Starting OSC thread..."
+    
+        s = OSC.ThreadingOSCServer(listen_address)#, c)#, return_port=54321)
+
+        print s
+                
+        # Set Server to return errors as OSCMessages to "/error"
+        s.setSrvErrorPrefix("/error")
+        # Set Server to reply to server-info requests with OSCMessages to "/serverinfo"
+        s.setSrvInfoPrefix("/serverinfo")
+
+        # this registers a 'default' handler (for unmatched messages),
+        # an /'error' handler, an '/info' handler.
+        # And, if the client supports it, a '/subscribe' & '/unsubscribe' handler
+        s.addDefaultHandlers()
+
+        s.addMsgHandler("default", printing_handler)
+        #s.addMsgHandler("/MM_Remote/Control/activeObjectsID", pallete_handler)
+        s.addMsgHandler("/MM_Remote/Control/activeObjectsPosition", pallete_handler)
+
+        print "Registered Callback-functions:"
+        for addr in s.getOSCAddressSpace():
+            print addr
+
+        print "\nStarting OSCServer. Use ctrl-C to quit."
+        st = threading.Thread(target=s.serve_forever)
+        st.start()
+
+        c2 = OSC.OSCClient()
+        c2.connect(send_address)
+        #subreq = OSC.OSCMessage("/MashMachine/Control/getActiveObjectsPosition")
+
+
+        tries = 10
+        global paired
+        
+        try:
+            while paired == 0 and tries > 0:
+                try:
+                    print "Pairing..."
+                    subreq = OSC.OSCMessage("/MashMachine/Global/makePairing")
+                    subreq.append("localhost")
+                    subreq.append(54321)
+                    c2.send(subreq)
+                    #time.sleep(0.5)
+
+                    print "Subscribing..."
+                    subreq = OSC.OSCMessage("/MashMachine/Global/subscribeObjectsID")
+                    #  /MashMachine/Global/subscribeObjectsPosition
+                    subreq.append("localhost")
+                    c2.send(subreq)
+                    paired = 1
+                except(OSC.OSCClientError):
+                    print "Pairing or Subscribing failed.."
+                    tries = tries - 1
+                    time.sleep(1)
+        except(KeyboardInterrupt):
+            print "Continue without pairing.."
+            paired = 2
+            raise
+
+        while 1:
+            #check messages
+            time.sleep(0.5)
+            print "Sleeping..."
+
+    except (KeyboardInterrupt, OSC.OSCClientError, SystemExit):
+        print "\nClosing OSCServer."
+        s.close()
+        print "Waiting for Server-thread to finish"
+        st.join()
+        print "OSC Done"
+        raise
+
+
+def main():
+    
+    print "Main Starting..."
+    
+    try:
+    
+        oscThread = threading.Thread(target = oscThreadFunction, args = (send_address, listen_address ))
+        oscThread.start()
+
+        print("eina.. Control+C to stop")
+
+        while True:
+            startTime = time.time()
+            global paired
+            if paired == 2:
+                screen.render(width, height, timeCounter/640., [grass, sun], mainPalette)
+                endTime = time.time()
+                timeToWait = targetFrameTime - (endTime - startTime)
+                #print"Frame time: ", (endTime - startTime)
+                if timeToWait < 0:
+                    #    print("late!", timeToWait)
+                    timeToWait = 0
+                time.sleep(timeToWait)
+            else:
+                global currentEffect
+                bitmap = currentEffect.drawFrame(width,height)
+                screen.send(bitmap)
+                time.sleep(currentEffect.delay)
+
+
+    except (KeyboardInterrupt): #, OSC.OSCClientError, SystemExit):
+        #print "\nClosing OSCServer."
+        #s.close()
+        #print "Waiting for Server-thread to finish"
+        #st.join()
+        oscThread.join()
+        #print "Closing OSCClient"
+        #c.close()
+        print "Main Done"
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
