@@ -13,6 +13,7 @@ class Effect:
     def __init__(self, palette, delay):
         self.palette = palette
         self.delay = delay
+        self.framenumber = 0
 
     def drawFrame(self, x, y):
         bitmap = np.zeros([140,140])
@@ -20,7 +21,31 @@ class Effect:
             for y in range(20,40):
                 bitmap[x][y]=0x00ffffff
         return bitmap
-
+    
+    
+class CenterFillEffect(Effect):
+    
+    def __init__(self, color):
+        super(CenterFillEffect, self).__init__()
+        self.color = color 
+        self.center = 70
+    
+    def drawFrame(self, x, y):
+        
+        bitmap = np.zeros([140,140])
+        
+        i = self.framenumber
+        
+        for y in range(-i,i):
+            bitmap[center+y][center+i] =  self.color
+            bitmap[center+i][center+y] =  self.color
+            bitmap[center-i][center+y] =  self.color
+            bitmap[center+y][center-i] =  self.color
+                
+        self.framenumber += 1
+        if( self.framenumber > self.center):
+            self.framenumber = 0
+        return bitmap
 
 #
 #leds = opc.FastOPC()

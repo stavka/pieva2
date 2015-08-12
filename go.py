@@ -149,12 +149,33 @@ class OSCThread(threading.Thread):
         subreq.append(listen_address[0])
         self.c2.send(subreq)
 
+    def objectID_handler(self, addr, tags, stuff, source):
+        
+        msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
+        print "Got Object ID message: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
+        
+        
+        if self.objectID_lock.acquire(False):
+            try:
+                self.activeObjects = np.zeros([5,10])
+                for i in xrange(0, len(stuff), 2):
+                    group = stuff[i]
+                    objectid = stuff[i+1]
+                    print "Object: ", group, ":",  objectid, "is active"
+                    self.activeObjects[group][objectid] = 1
+            finally:
+                self.objectID_lock.release()
+        
+            
     
     
     def __init__(self, send_address, listen_address):
         super(OSCThread, self).__init__()
         self.stoprequest = threading.Event()
         self.s = OSC.ThreadingOSCServer(listen_address)
+        
+        self.objectID_lock = threading.Lock()
+        self.activeObjects = np.zeros([5,10])
         
         # Set Server to return errors as OSCMessages to "/error"
         self.s.setSrvErrorPrefix("/error")
@@ -168,6 +189,8 @@ class OSCThread(threading.Thread):
 
         self.s.addMsgHandler("default", self.printing_handler)
         #s.addMsgHandler("/MM_Remote/Control/activeObjectsID", pallete_handler)
+        self.s.addMsgHandler("/MM_Remote/Control/activeObjectsID", self.objectID_handler)
+        
         self.s.addMsgHandler("/MM_Remote/Control/activeObjectsPosition", self.pallete_handler)
         self.s.addMsgHandler("/MM_Remote/Global/pairingAccepted", self.pairing_handler)
 
