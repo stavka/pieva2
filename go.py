@@ -103,7 +103,7 @@ class OSCThread(threading.Thread):
     
     ########### pyosc stuff
     # define a message-handler function for the server to call.
-    def printing_handler(addr, tags, stuff, source):
+    def printing_handler(self, addr, tags, stuff, source):
         msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
         print "OSCServer Got: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
                 
@@ -113,7 +113,7 @@ class OSCThread(threading.Thread):
         return msg
     
     # define a message-handler function for the server to call.
-    def pallete_handler(addr, tags, stuff, source):
+    def pallete_handler(self, addr, tags, stuff, source):
         msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
         print "PHOSCServer Got: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
         
@@ -135,24 +135,28 @@ class OSCThread(threading.Thread):
             mainPalette = pinkPalette
             
             
-    def pairing_handler(addr, tags, stuff, source):
+    def pairing_handler(self, addr, tags, stuff, source):
+        
         msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
         print "Got pairing message: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
         self.paired = 1 
                
         print "Subscribing..."
+        #self.c2 = OSC.OSCClient()
+        #self.c2.connect(send_address)
         subreq = OSC.OSCMessage("/MashMachine/Global/subscribeObjectsID")
         #  /MashMachine/Global/subscribeObjectsPosition
         subreq.append(listen_address[0])
         self.c2.send(subreq)
-    ################
+
     
     
     def __init__(self, send_address, listen_address):
         super(OSCThread, self).__init__()
         self.stoprequest = threading.Event()
         self.s = OSC.ThreadingOSCServer(listen_address)
-                # Set Server to return errors as OSCMessages to "/error"
+        
+        # Set Server to return errors as OSCMessages to "/error"
         self.s.setSrvErrorPrefix("/error")
         # Set Server to reply to server-info requests with OSCMessages to "/serverinfo"
         self.s.setSrvInfoPrefix("/serverinfo")
@@ -165,7 +169,7 @@ class OSCThread(threading.Thread):
         self.s.addMsgHandler("default", self.printing_handler)
         #s.addMsgHandler("/MM_Remote/Control/activeObjectsID", pallete_handler)
         self.s.addMsgHandler("/MM_Remote/Control/activeObjectsPosition", self.pallete_handler)
-        self.s.addMsgHandler("/MM_Remote/Control/pairing", self.pairing_handler)
+        self.s.addMsgHandler("/MM_Remote/Global/pairingAccepted", self.pairing_handler)
 
         print "Registered Callback-functions:"
         for addr in self.s.getOSCAddressSpace():
@@ -173,7 +177,8 @@ class OSCThread(threading.Thread):
         
         print "\nStarting OSCServer. Use ctrl-C to quit."
         self.st = threading.Thread(target=self.s.serve_forever)
-        self.st.start()  
+        self.st.start()
+        
             
         self.c2 = OSC.OSCClient()
         self.c2.connect(send_address)
@@ -186,6 +191,8 @@ class OSCThread(threading.Thread):
         try:
             while self.paired == 0 and tries > 0:
                 try:
+
+
                     print "Pairing..."
                     subreq = OSC.OSCMessage("/MashMachine/Global/makePairing")
                     subreq.append(listen_address[0])
@@ -204,6 +211,8 @@ class OSCThread(threading.Thread):
         if (tries==0):
             print "Continue without pairing.."
             self.paired = 2
+
+
         
     def join(self, timeout=None):
         self.stoprequest.set()
@@ -225,8 +234,10 @@ class OSCThread(threading.Thread):
     
             while not self.stoprequest.isSet():
                 #check messages
-                time.sleep(0.5)
+#OSCServer Got: '/MM_Remote/Control/activeObjectsID [iiiiii] [1, 1, 1, 2, 1, 0]' from localhost:52094
                 print "Sleeping..."
+                time.sleep(0.5)
+        
     
         except (KeyboardInterrupt, OSC.OSCClientError, SystemExit):
             self.close_threads()
@@ -235,7 +246,7 @@ class OSCThread(threading.Thread):
 
 def main():
     
-    print "Main Starting..."
+    print "!Main Starting..."
     
     try:
     
