@@ -5,7 +5,7 @@
 import time
 import Tkinter
 import numpy as np
-from math import sin
+from math import sin, ceil, floor
 from math import radians
 #from screen import *
 
@@ -55,11 +55,14 @@ def arc(bitmap, x0, y0, radius, alpha, beta, colour=0xffffff):
     f = 1 - radius
     ddf_x = 1
     ddf_y = -2 * radius
+    
+    
     x = 0
     y = radius
     
-    alpha = radius * sin(radians(alpha))
-    beta = radius * sin(radians(beta))
+    alphar = floor(radius * sin(radians(alpha)))-1
+    betar = ceil(radius * sin(radians(beta)))+1
+    
     
     if(alpha <= 0 and beta >= 0):
         bitmap.set(x0, y0 + radius, colour)
@@ -68,7 +71,7 @@ def arc(bitmap, x0, y0, radius, alpha, beta, colour=0xffffff):
         bitmap.set(x0 - radius, y0, colour)
  
  
-    while x < y:        
+    while x < y: # * alphar and x < y * betar:        
             if f >= 0: 
                 y -= 1
                 ddf_y += 2
@@ -76,20 +79,27 @@ def arc(bitmap, x0, y0, radius, alpha, beta, colour=0xffffff):
             x += 1
             ddf_x += 2
             f += ddf_x  
-            #if( x <> 0):
-                #print float(y)/x
-            #if( x <> 0 and (float(y)/x > alpha and float(y)/x < beta)  ):  
-            if( float(x) > alpha and float(x) < beta ):  
+
+            
+            #if(alpha > 45):
+            if( x >= alphar and x <= betar ):
                 #bitmap.set(x0 + x, y0 + y, colour)
                 bitmap.set(x0 - x, y0 + y, colour)
                 bitmap.set(x0 + y, y0 + x, colour)
                 bitmap.set(x0 - y, y0 - x, colour)
-                
-                
                 bitmap.set(x0 + x, y0 - y, colour)
                 #bitmap.set(x0 - x, y0 - y, colour)
                 #bitmap.set(x0 - y, y0 + x, colour)
                 #bitmap.set(x0 + y, y0 - x, colour)
+        #else:
+            if( y >= alphar and y <= betar ):
+                bitmap.set(x0 + x, y0 + y, colour)
+                bitmap.set(x0 - x, y0 - y, colour)
+                bitmap.set(x0 - y, y0 + x, colour)
+                bitmap.set(x0 + y, y0 - x, colour)
+                
+                
+
                 
 def fill(image, color):
     """Fill image with a color=(r,b,g)."""
@@ -223,6 +233,7 @@ class FanEffect(Effect):
         self.centery = int(self.sizey / 2)
         self.radius = min(self.centerx, self.centery)
         self.thickness = thickness
+
     
     def drawFrame(self):
         
@@ -230,11 +241,11 @@ class FanEffect(Effect):
         
         alpha = self.framenumber
         
-        for r in range(1, self.radius):
-            arc(bitmap, self.centerx, self.centery, self.radius, alpha, alpha+self.thickness )
+        for r in range(10, self.radius):
+            arc(bitmap, self.centerx, self.centery, r, alpha, alpha+self.thickness )
                 
         self.framenumber += 1
-        if( self.framenumber > 90-self.thickness):
+        if( self.framenumber > 90): #-self.thickness):
             self.framenumber = 0
         return bitmap.bitmap
 
