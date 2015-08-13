@@ -144,11 +144,11 @@ class CenterSquareFillEffect(Effect):
         i = self.framenumber
         
         for y in range(-i,i):
-            self.bitmap[center+y][center+i] =  self.palette[0]
-            self.bitmap[center+i][center+y] =  self.palette[0]
-            self.bitmap[center-i][center+y] =  self.palette[0]
-            self.bitmap[center+y][center-i] =  self.palette[0]
-        self.bitmap[center-i][center-i] =  self.palette[0]
+            self.bitmap[self.center+y][self.center+i] =  self.palette[0]
+            self.bitmap[self.center+i][self.center+y] =  self.palette[0]
+            self.bitmap[self.center-i][self.center+y] =  self.palette[0]
+            self.bitmap[self.center+y][self.center-i] =  self.palette[0]
+        self.bitmap[self.center-i][self.center-i] =  self.palette[0]
                 
         self.framenumber += 1
         if( self.framenumber > self.center):
@@ -250,47 +250,48 @@ class FanEffect(Effect):
         return bitmap.bitmap
 
 ### testing code
+def main():
+    root = Tkinter.Tk()
 
-root = Tkinter.Tk()
+    size = 140
 
-size = 140
+    w = Tkinter.Canvas(root, width=size, height=size)
+    w.pack()
+    #point = w.create_rectangle(70,70,71,71, fill="blue")
 
-w = Tkinter.Canvas(root, width=size, height=size)
-w.pack()
-#point = w.create_rectangle(70,70,71,71, fill="blue")
+    center = size/2
+    delay = 0
 
-center = size/2
-delay = 0
-
-try:
-    
-    currentEffect = FanEffect()
-    #currentEffect = WaveEffect()
-    #currentEffect = WaveEffect(direction = 1)
-    #currentEffect = CenterCircleFillEffect()
-    
-    i = Tkinter.PhotoImage(width=size,height=size)
-    
-    for f in range(1000):
-        bitmap = currentEffect.drawFrame()
-             
-        fill(i, (0,0,0))           
+    try:
         
-        for x in range(size):
-             for y in range(size):
-                 if not bitmap[x,y] == 0:
-                     i.put("#%06x" % bitmap[x,y],(x,y))
-        w.create_image(0, 0, image = i, anchor=Tkinter.NW)
-                
-        root.update()
-        time.sleep(delay)
+        currentEffect = FanEffect()
+        #currentEffect = WaveEffect()
+        #currentEffect = WaveEffect(direction = 1)
+        #currentEffect = CenterCircleFillEffect()
+        
+        i = Tkinter.PhotoImage(width=size,height=size)
+        
+        for f in range(1000):
+            bitmap = currentEffect.drawFrame()
+                 
+            fill(i, (0,0,0))           
+            
+            for x in range(size):
+                 for y in range(size):
+                     if not bitmap[x,y] == 0:
+                         i.put("#%06x" % bitmap[x,y],(x,y))
+            w.create_image(0, 0, image = i, anchor=Tkinter.NW)
+                    
+            root.update()
+            time.sleep(delay)
 
 
-except Tkinter.TclError:
-    pass # to avoid errors when the window is closed
+    except Tkinter.TclError:
+        pass # to avoid errors when the window is closed
 
-print "done"
-root.mainloop()
-exit(0)
+    print "done"
+    root.mainloop()
+    exit(0)
 
-
+if __name__ == "__main__":
+    main()
