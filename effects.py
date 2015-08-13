@@ -10,13 +10,14 @@ class Effect:
     palette = ""
     delay = 0.1
 
-    def __init__(self, palette, delay):
+    def __init__(self, palette, sizex = 140, sizey = 140):
         self.palette = palette
-        self.delay = delay
         self.framenumber = 0
+        self.sizex = sizex
+        self.sizey = sizey
 
-    def drawFrame(self, x, y):
-        bitmap = np.zeros([140,140])
+    def drawFrame(self):
+        bitmap = np.zeros([self.sizex,self.sizey])
         for x in range(20,40):  ###  example
             for y in range(20,40):
                 bitmap[x][y]=0x00ffffff
@@ -25,22 +26,92 @@ class Effect:
     
 class CenterFillEffect(Effect):
     
-    def __init__(self, color):
-        super(CenterFillEffect, self).__init__()
-        self.color = color 
-        self.center = 70
+    def __init__(self, palette = [0xffffff,], sizex = 140, sizey = 140):
+        super(CenterFillEffect, self).__init__(palette, sizex, sizey)
+        self.center = int(self.sizex / 2)
     
-    def drawFrame(self, x, y):
+    def drawFrame(self):
         
-        bitmap = np.zeros([140,140])
+        bitmap = np.zeros([self.sizex,self.sizey])
         
         i = self.framenumber
         
         for y in range(-i,i):
-            bitmap[center+y][center+i] =  self.color
-            bitmap[center+i][center+y] =  self.color
-            bitmap[center-i][center+y] =  self.color
-            bitmap[center+y][center-i] =  self.color
+            bitmap[center+y][center+i] =  self.palette[0]
+            bitmap[center+i][center+y] =  self.palette[0]
+            bitmap[center-i][center+y] =  self.palette[0]
+            bitmap[center+y][center-i] =  self.palette[0]
+                
+        self.framenumber += 1
+        if( self.framenumber > self.center):
+            self.framenumber = 0
+        return bitmap
+
+class WaveEffect(Effect):
+    
+    def __init__(self, direction = 0, palette = [0x0000ff,0x006666,0x004444,0x002222,0x000000], sizex = 140, sizey = 140):
+        super(CenterFillEffect, self).__init__(palette, sizex, sizey)
+        if(direction%2 == 0):
+            self.size = self.sizex
+        else:
+            self.size = self.sizey
+    
+    def drawFrame(self):
+        
+        bitmap = np.zeros([self.sizex,self.sizey])
+        
+        if(direction%2 == 0):
+            x = self.framenumber
+            for y in range(self.sizey):
+                bitmap[x][y]=  palette[0] #0x0000ff
+                if x>8:
+                    bitmap[x-8][y]= palette[4] #0x000000
+                    bitmap[x-7][y]= palette[3] #0x002222
+                    bitmap[x-6][y]= palette[2] #0x004444
+                    bitmap[x-5][y]= palette[1] #0x006666
+                    bitmap[x-4][y]= palette[0]
+                    bitmap[x-3][y]= palette[0]
+                    bitmap[x-2][y]= palette[0]
+                    bitmap[x-1][y]= palette[0]
+        else:
+            y = self.framenumber
+            for x in range(self.sizex):
+                bitmap[x][y]= palette[0] #0x0000ff
+                if y>8:
+                    bitmap[x][y-8]= palette[4] #0x000000
+                    bitmap[x][y-7]= palette[3] #0x002222
+                    bitmap[x][y-6]= palette[2] #0x004444
+                    bitmap[x][y-5]= palette[1] #0x006666
+                    bitmap[x][y-4]= palette[0]
+                    bitmap[x][y-3]= palette[0]
+                    bitmap[x][y-2]= palette[0]
+                    bitmap[x][y-1]= palette[0]
+                
+        self.framenumber += 1
+        if( self.framenumber > self.size):
+            self.framenumber = 0
+        return bitmap
+
+
+
+class FanEffect(Effect):
+    
+    def __init__(self, palette = [0xffffff,], sizex = 140, sizey = 140):
+        super(CenterFillEffect, self).__init__(palette, sizex, sizey)
+        self.centerx = int(self.sizex / 2)
+        self.centery = int(self.sizey / 2)
+    
+    def drawFrame(self):
+        
+        bitmap = np.zeros([self.sizex,self.sizey])
+        
+        i = self.framenumber
+        
+        for y in range(-i,i):
+            bitmap[center+y][center+i] =  self.palette[0]
+            bitmap[center+i][center+y] =  self.palette[0]
+            bitmap[center-i][center+y] =  self.palette[0]
+            bitmap[center+y][center-i] =  self.palette[0]
                 
         self.framenumber += 1
         if( self.framenumber > self.center):
