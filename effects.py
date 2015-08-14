@@ -97,8 +97,6 @@ def arc(bitmap, x0, y0, radius, alpha, beta, colour=0xffffff):
                 bitmap.set(x0 - x, y0 - y, colour)
                 bitmap.set(x0 - y, y0 + x, colour)
                 bitmap.set(x0 + y, y0 - x, colour)
-                
-                
 
                 
 def fill(image, color):
@@ -195,30 +193,28 @@ class WaveEffect(Effect):
         
         if(self.direction%2 == 0):
             x = self.framenumber
-            for y in range(self.sizey-1):
-                bitmap[x][y]=  self.palette[0] #0x0000ff
-                if x>8:
-                    bitmap[x-8][y]= self.palette[4] #0x000000
-                    bitmap[x-7][y]= self.palette[3] #0x002222
-                    bitmap[x-6][y]= self.palette[2] #0x004444
-                    bitmap[x-5][y]= self.palette[1] #0x006666
-                    bitmap[x-4][y]= self.palette[0]
-                    bitmap[x-3][y]= self.palette[0]
-                    bitmap[x-2][y]= self.palette[0]
-                    bitmap[x-1][y]= self.palette[0]
+            bitmap[x][:]=  self.palette[0] #0x0000ff
+            if x>8:
+                bitmap[x-8][:]= self.palette[4] #0x000000
+                bitmap[x-7][:]= self.palette[3] #0x002222
+                bitmap[x-6][:]= self.palette[2] #0x004444
+                bitmap[x-5][:]= self.palette[1] #0x006666
+                bitmap[x-4][:]= self.palette[0]
+                bitmap[x-3][:]= self.palette[0]
+                bitmap[x-2][:]= self.palette[0]
+                bitmap[x-1][:]= self.palette[0]
         else:
             y = self.framenumber
-            for x in range(self.sizex-1):
-                bitmap[x][y]= self.palette[0] #0x0000ff
-                if y>8:
-                    bitmap[x][y-8]= self.palette[4] #0x000000
-                    bitmap[x][y-7]= self.palette[3] #0x002222
-                    bitmap[x][y-6]= self.palette[2] #0x004444
-                    bitmap[x][y-5]= self.palette[1] #0x006666
-                    bitmap[x][y-4]= self.palette[0]
-                    bitmap[x][y-3]= self.palette[0]
-                    bitmap[x][y-2]= self.palette[0]
-                    bitmap[x][y-1]= self.palette[0]
+            bitmap[:][y]= self.palette[0] #0x0000ff
+            if y>8:
+                bitmap[:][y-8]= self.palette[4] #0x000000
+                bitmap[:][y-7]= self.palette[3] #0x002222
+                bitmap[:][y-6]= self.palette[2] #0x004444
+                bitmap[:][y-5]= self.palette[1] #0x006666
+                bitmap[:][y-4]= self.palette[0]
+                bitmap[:][y-3]= self.palette[0]
+                bitmap[:][y-2]= self.palette[0]
+                bitmap[:][y-1]= self.palette[0]
                 
         self.framenumber += 1
         if( self.framenumber >= self.size):
@@ -264,8 +260,8 @@ delay = 0
 
 try:
     
-    currentEffect = FanEffect()
-    #currentEffect = WaveEffect()
+    #currentEffect = FanEffect()
+    currentEffect = WaveEffect()
     #currentEffect = WaveEffect(direction = 1)
     #currentEffect = CenterCircleFillEffect()
     
