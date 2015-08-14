@@ -247,46 +247,49 @@ class FanEffect(Effect):
 
 ### testing code
 
-root = Tkinter.Tk()
+def main():
 
-size = 140
-
-w = Tkinter.Canvas(root, width=size, height=size)
-w.pack()
-#point = w.create_rectangle(70,70,71,71, fill="blue")
-
-center = size/2
-delay = 0
-
-try:
+    root = Tkinter.Tk()
     
-    #currentEffect = FanEffect()
-    currentEffect = WaveEffect()
-    #currentEffect = WaveEffect(direction = 1)
-    #currentEffect = CenterCircleFillEffect()
+    size = 140
     
-    i = Tkinter.PhotoImage(width=size,height=size)
+    w = Tkinter.Canvas(root, width=size, height=size)
+    w.pack()
+    #point = w.create_rectangle(70,70,71,71, fill="blue")
     
-    for f in range(1000):
-        bitmap = currentEffect.drawFrame()
-             
-        fill(i, (0,0,0))           
+    center = size/2
+    delay = 0
+    
+    try:
         
-        for x in range(size):
-             for y in range(size):
-                 if not bitmap[x,y] == 0:
-                     i.put("#%06x" % bitmap[x,y],(x,y))
-        w.create_image(0, 0, image = i, anchor=Tkinter.NW)
-                
-        root.update()
-        time.sleep(delay)
+        #currentEffect = FanEffect()
+        currentEffect = WaveEffect()
+        #currentEffect = WaveEffect(direction = 1)
+        #currentEffect = CenterCircleFillEffect()
+        
+        i = Tkinter.PhotoImage(width=size,height=size)
+        
+        for f in range(1000):
+            bitmap = currentEffect.drawFrame()
+                 
+            fill(i, (0,0,0))           
+            
+            for x in range(size):
+                 for y in range(size):
+                     if not bitmap[x,y] == 0:
+                         i.put("#%06x" % bitmap[x,y],(x,y))
+            w.create_image(0, 0, image = i, anchor=Tkinter.NW)
+                    
+            root.update()
+            time.sleep(delay)
+    
+    
+    except Tkinter.TclError:
+        pass # to avoid errors when the window is closed
+    
+    print "done"
+    root.mainloop()
+    exit(0)
 
-
-except Tkinter.TclError:
-    pass # to avoid errors when the window is closed
-
-print "done"
-root.mainloop()
-exit(0)
-
-
+if __name__ == "__main__":
+    main()
