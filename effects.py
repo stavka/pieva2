@@ -8,13 +8,14 @@ from PIL import Image, ImageTk
 import numpy as np
 from math import sin, ceil, floor
 from math import radians
+from PIL import Image, ImageTk
 #from screen import *
 
 class Bitmap():
-    
+
     def __init__(self, sizex, sizey):
         self.bitmap = np.zeros([sizex,sizey])
-        
+
     def set(self, x, y, colour):
         try:
             self.bitmap[x,y] = colour
@@ -32,16 +33,16 @@ def circle(bitmap, x0, y0, radius, colour=0xffffff):
     bitmap.set(x0, y0 - radius, colour)
     bitmap.set(x0 + radius, y0, colour)
     bitmap.set(x0 - radius, y0, colour)
- 
- 
+
+
     while x < y:
-        if f >= 0: 
+        if f >= 0:
             y -= 1
             ddf_y += 2
             f += ddf_y
         x += 1
         ddf_x += 2
-        f += ddf_x    
+        f += ddf_x
         bitmap.set(x0 + x, y0 + y, colour)
         bitmap.set(x0 - x, y0 + y, colour)
         bitmap.set(x0 + x, y0 - y, colour)
@@ -56,32 +57,32 @@ def arc(bitmap, x0, y0, radius, alpha, beta, colour=0xffffff):
     f = 1 - radius
     ddf_x = 1
     ddf_y = -2 * radius
-    
-    
+
+
     x = 0
     y = radius
-    
+
     alphar = floor(radius * sin(radians(alpha)))-1
     betar = ceil(radius * sin(radians(beta)))+1
-    
-    
+
+
     if(alpha <= 0 and beta >= 0):
         bitmap.set(x0, y0 + radius, colour)
         bitmap.set(x0, y0 - radius, colour)
         bitmap.set(x0 + radius, y0, colour)
         bitmap.set(x0 - radius, y0, colour)
- 
- 
-    while x < y: # * alphar and x < y * betar:        
-            if f >= 0: 
+
+
+    while x < y: # * alphar and x < y * betar:
+            if f >= 0:
                 y -= 1
                 ddf_y += 2
                 f += ddf_y
             x += 1
             ddf_x += 2
-            f += ddf_x  
+            f += ddf_x
 
-            
+
             #if(alpha > 45):
             if( x >= alphar and x <= betar ):
                 #bitmap.set(x0 + x, y0 + y, colour)
@@ -99,7 +100,7 @@ def arc(bitmap, x0, y0, radius, alpha, beta, colour=0xffffff):
                 bitmap.set(x0 - y, y0 + x, colour)
                 bitmap.set(x0 + y, y0 - x, colour)
 
-                
+
 def fill(image, color):
     """Fill image with a color=(r,b,g)."""
     r,g,b = color
@@ -126,17 +127,17 @@ class Effect(object):
             for y in range(20,40):
                 bitmap[x][y]=0xffffff
         return bitmap
-    
-    
+
+
 class CenterSquareFillEffect(Effect):
-    
+
     def __init__(self, palette = [0xffffff,], sizex = 140, sizey = 140):
         super(CenterSquareFillEffect, self).__init__(palette, sizex, sizey)
         self.centerx = int(self.sizex / 2)
         self.centery = int(self.sizey / 2)
         self.bitmap = np.zeros([self.sizex,self.sizey])
         #self.bitmap = bitmap = Bitmap(self.sizex,self.sizey)
-    
+
     def drawFrame(self):
 
         i = self.framenumber
@@ -146,6 +147,7 @@ class CenterSquareFillEffect(Effect):
         self.bitmap[self.centerx-i,self.centery-i:self.centery+i] =  self.palette[0]
         self.bitmap[self.centerx-i:self.centerx+i,self.centery-i] =  self.palette[0]
         
+
         self.framenumber += 1
         if( self.framenumber > self.centerx-1):
             self.bitmap = np.zeros([self.sizex,self.sizey])
@@ -153,32 +155,32 @@ class CenterSquareFillEffect(Effect):
         
 
         return self.bitmap
-    
+
 class CenterCircleFillEffect(Effect):
-    
+
     def __init__(self, palette = [0xffffff,], sizex = 140, sizey = 140):
         super(CenterCircleFillEffect, self).__init__(palette, sizex, sizey)
         self.centerx = int(self.sizex / 2)
         self.centery = int(self.sizey / 2)
         self.radius = min(self.centerx, self.centery)
         self.bitmap = Bitmap(self.sizex,self.sizey)
-    
+
     def drawFrame(self):
-        
+
         #bitmap = np.zeros([self.sizex,self.sizey])
-        
+
         i = self.framenumber
-        
+
         circle(self.bitmap, self.centerx, self.centery, i, self.palette[0])
-        
-                
+
+
         self.framenumber += 1
         if( self.framenumber > self.radius):
             self.framenumber = 0
         return self.bitmap.bitmap
 
 class WaveEffect(Effect):
-    
+
     def __init__(self, direction = 0, palette = [0x0000ff,0x006666,0x004444,0x002222,0x000000], sizex = 140, sizey = 140):
         super(WaveEffect, self).__init__(palette, sizex, sizey)
         self.direction = direction
@@ -187,11 +189,11 @@ class WaveEffect(Effect):
         else:
             self.size = self.sizey
         self.framenumber = 9
-    
+
     def drawFrame(self):
-        
+
         bitmap = np.zeros([self.sizex,self.sizey])
-        
+
         if(self.direction%2 == 0):
             x = self.framenumber
             bitmap[x][:]=  self.palette[0] #0x0000ff
@@ -216,14 +218,14 @@ class WaveEffect(Effect):
                 bitmap[:][y-3]= self.palette[0]
                 bitmap[:][y-2]= self.palette[0]
                 bitmap[:][y-1]= self.palette[0]
-                
+
         self.framenumber += 1
         if( self.framenumber >= self.size):
             self.framenumber = 0
         return bitmap
 
 class FanEffect(Effect):
-    
+
     def __init__(self, thickness = 15, palette = [0xffffff,], sizex = 140, sizey = 140):
         super(FanEffect, self).__init__(palette, sizex, sizey)
         self.centerx = int(self.sizex / 2)
@@ -231,16 +233,16 @@ class FanEffect(Effect):
         self.radius = min(self.centerx, self.centery)
         self.thickness = thickness
 
-    
+
     def drawFrame(self):
-        
+
         bitmap = Bitmap(self.sizex,self.sizey)
-        
+
         alpha = self.framenumber
-        
+
         for r in range(10, self.radius):
             arc(bitmap, self.centerx, self.centery, r, alpha, alpha+self.thickness )
-                
+
         self.framenumber += 1
         if( self.framenumber > 90): #-self.thickness):
             self.framenumber = 0
@@ -251,36 +253,39 @@ class FanEffect(Effect):
 def main():
 
     root = Tkinter.Tk()
-    
+
     size = 140
-    
+
     w = Tkinter.Canvas(root, width=size, height=size)
     w.pack()
     #point = w.create_rectangle(70,70,71,71, fill="blue")
-    
+
     center = size/2
     delay = 0
-    
+
     try:
-        
+
         #currentEffect = FanEffect()
         #currentEffect = WaveEffect()
         #currentEffect = WaveEffect(direction = 1)
         #currentEffect = CenterCircleFillEffect()
+
         currentEffect = CenterSquareFillEffect()
         
-        i = Tkinter.PhotoImage(width=size,height=size)
+        #i = Tkinter.PhotoImage(width=size,height=size)
         
+
         for f in range(1000):
-            bitmap = currentEffect.drawFrame()
+
+            #bitmap = currentEffect.drawFrame()
                   
-            fill(i, (0,0,0))           
+            #fill(i, (0,0,0))           
              
-            for x in range(size):
-                 for y in range(size):
-                     if not bitmap[x,y] == 0:
-                         i.put("#%06x" % bitmap[x,y],(x,y))
-            w.create_image(0, 0, image = i, anchor=Tkinter.NW)
+#             for x in range(size):
+#                  for y in range(size):
+#                      if not bitmap[x,y] == 0:
+#                          i.put("#%06x" % bitmap[x,y],(x,y))
+#             w.create_image(0, 0, image = i, anchor=Tkinter.NW)
             
 #             bitmap = currentEffect.drawFrame().astype(np.uint32)
 # 
@@ -296,13 +301,28 @@ def main():
 #             tk_im = ImageTk.PhotoImage(im)
 #             w.create_image((0, 0), image=tk_im, anchor=Tkinter.NW)
 #                     
+
+            bitmap = currentEffect.drawFrame().astype(np.uint32)
+
+            b = (bitmap & 255).astype(np.uint8)
+            g = ((bitmap >> 8) & 255).astype(np.uint8)
+            r = ((bitmap >> 16) & 255).astype(np.uint8)
+
+            data = np.zeros(bitmap.shape + (3,), dtype=np.uint8)
+            data[..., 0] = r
+            data[..., 1] = g
+            data[..., 2] = b
+            im = Image.fromstring("RGB", bitmap.shape, data.tostring())
+            tk_im = ImageTk.PhotoImage(im)
+            w.create_image((0, 0), image=tk_im, anchor=Tkinter.NW)
+
             root.update()
             time.sleep(delay)
-    
-    
+
+
     except Tkinter.TclError:
         pass # to avoid errors when the window is closed
-    
+
     print "done"
     root.mainloop()
     exit(0)
