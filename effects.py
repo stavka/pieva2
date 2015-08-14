@@ -4,6 +4,7 @@
 #import fastopc as opc
 import time
 import Tkinter
+from PIL import Image, ImageTk
 import numpy as np
 from math import sin, ceil, floor
 from math import radians
@@ -131,26 +132,26 @@ class CenterSquareFillEffect(Effect):
     
     def __init__(self, palette = [0xffffff,], sizex = 140, sizey = 140):
         super(CenterSquareFillEffect, self).__init__(palette, sizex, sizey)
-        self.center = int(self.sizex / 2)
+        self.centerx = int(self.sizex / 2)
+        self.centery = int(self.sizey / 2)
         self.bitmap = np.zeros([self.sizex,self.sizey])
         #self.bitmap = bitmap = Bitmap(self.sizex,self.sizey)
     
     def drawFrame(self):
-        
-        #bitmap = np.zeros([self.sizex,self.sizey])
-        
+
         i = self.framenumber
         
-        for y in range(-i,i):
-            self.bitmap[self.center+y][self.center+i] =  self.palette[0]
-            self.bitmap[self.center+i][self.center+y] =  self.palette[0]
-            self.bitmap[self.center-i][self.center+y] =  self.palette[0]
-            self.bitmap[self.center+y][self.center-i] =  self.palette[0]
-        self.bitmap[self.center-i][self.center-i] =  self.palette[0]
-                
+        self.bitmap[self.centerx-i:self.centerx+i,self.centery+i] =  self.palette[0]
+        self.bitmap[self.centerx+i,self.centery-i:self.centery+i] =  self.palette[0]
+        self.bitmap[self.centerx-i,self.centery-i:self.centery+i] =  self.palette[0]
+        self.bitmap[self.centerx-i:self.centerx+i,self.centery-i] =  self.palette[0]
+        
         self.framenumber += 1
-        if( self.framenumber > self.center):
-            self.framenumber = 0
+        if( self.framenumber > self.centerx-1):
+            self.bitmap = np.zeros([self.sizex,self.sizey])
+            self.framenumber = 1
+        
+
         return self.bitmap
     
 class CenterCircleFillEffect(Effect):
@@ -263,23 +264,38 @@ def main():
     try:
         
         #currentEffect = FanEffect()
-        currentEffect = WaveEffect()
+        #currentEffect = WaveEffect()
         #currentEffect = WaveEffect(direction = 1)
         #currentEffect = CenterCircleFillEffect()
+        currentEffect = CenterSquareFillEffect()
         
         i = Tkinter.PhotoImage(width=size,height=size)
         
         for f in range(1000):
             bitmap = currentEffect.drawFrame()
-                 
+                  
             fill(i, (0,0,0))           
-            
+             
             for x in range(size):
                  for y in range(size):
                      if not bitmap[x,y] == 0:
                          i.put("#%06x" % bitmap[x,y],(x,y))
             w.create_image(0, 0, image = i, anchor=Tkinter.NW)
-                    
+            
+#             bitmap = currentEffect.drawFrame().astype(np.uint32)
+# 
+#             b = (bitmap & 255).astype(np.uint8)
+#             g = ((bitmap >> 8) & 255).astype(np.uint8)
+#             r = ((bitmap >> 16) & 255).astype(np.uint8)
+#  
+#             data = np.zeros(bitmap.shape + (3,), dtype=np.uint8)
+#             data[..., 0] = r
+#             data[..., 1] = g
+#             data[..., 2] = b
+#             im = Image.fromstring("RGB", bitmap.shape, data.tostring())
+#             tk_im = ImageTk.PhotoImage(im)
+#             w.create_image((0, 0), image=tk_im, anchor=Tkinter.NW)
+#                     
             root.update()
             time.sleep(delay)
     
