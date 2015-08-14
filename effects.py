@@ -142,11 +142,11 @@ class CenterSquareFillEffect(Effect):
         i = self.framenumber
         
         for y in range(-i,i):
-            self.bitmap[center+y][center+i] =  self.palette[0]
-            self.bitmap[center+i][center+y] =  self.palette[0]
-            self.bitmap[center-i][center+y] =  self.palette[0]
-            self.bitmap[center+y][center-i] =  self.palette[0]
-        self.bitmap[center-i][center-i] =  self.palette[0]
+            self.bitmap[self.center+y][self.center+i] =  self.palette[0]
+            self.bitmap[self.center+i][self.center+y] =  self.palette[0]
+            self.bitmap[self.center-i][self.center+y] =  self.palette[0]
+            self.bitmap[self.center+y][self.center-i] =  self.palette[0]
+        self.bitmap[self.center-i][self.center-i] =  self.palette[0]
                 
         self.framenumber += 1
         if( self.framenumber > self.center):

@@ -82,7 +82,11 @@ targetFPS = 24
 targetFrameTime = 1./targetFPS
 timeCounter = int(random.random() * 65535)
 
-currentEffect = effects.Effect(mainPalette,0)
+
+
+#currentEffect = effects.CenterSquareFillEffect()
+#currentEffect = effects.FanEffect()
+currentEffect = effects.WaveEffect()
 
 
 #dispatcher = dispatcher.Dispatcher()
@@ -284,7 +288,7 @@ def main():
 
         while True:
             startTime = time.time()          
-            if oscThread.paired == 2 or oscThread.paired == 0:
+            if oscThread.paired == 1 or oscThread.paired == 0:
                 screen.render(width, height, timeCounter/640., [grass, sun], mainPalette)
                 endTime = time.time()
                 timeToWait = targetFrameTime - (endTime - startTime)
@@ -296,7 +300,7 @@ def main():
                 timeCounter +=1
             else:
                 global currentEffect
-                bitmap = currentEffect.drawFrame(width,height)
+                bitmap = currentEffect.drawFrame()
                 screen.send(bitmap)
                 time.sleep(currentEffect.delay)
 
