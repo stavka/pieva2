@@ -21,8 +21,6 @@ pinkPalette = ColorPalette(CSVfilename="palettes/pink")
 mainPalette = greenPalette
 
 
-
-
 class NoiseParams:
     octaves = 1
     persistence = 0.5
@@ -75,7 +73,7 @@ grass = NoiseParams(
 
 
 
-screen = Screen(sections, ['127.0.0.1:7891'])
+screen = Screen(sections) #, ['127.0.0.1:7891'])
 screen.dimm(0)
 
 targetFPS = 24
