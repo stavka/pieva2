@@ -77,10 +77,18 @@ class CenterSquareFillEffect(Effect):
 
         return self.bitmap
 
-class CairoEffect(Effect):
+class NumpyEffect(Effect):
     def drawFrame(self):
         i = self.framenumber
+        rgba = self.drawNumpyFrame(i)
 
+        bitmap = from_rgb(rgba[:,:,0], rgba[:,:,1], rgba[:,:,2])
+
+        self.framenumber += 1
+        return bitmap
+
+class CairoEffect(NumpyEffect):
+    def drawNumpyFrame(self, i):
         img = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.sizex, self.sizey)
         ctx = cairo.Context(img)
 
@@ -93,10 +101,7 @@ class CairoEffect(Effect):
 
         rgba = np.frombuffer(img.get_data(), np.uint8)
         rgba.shape = (self.sizex, self.sizey, 4)
-        bitmap = from_rgb(rgba[:,:,0], rgba[:,:,1], rgba[:,:,2])
-
-        self.framenumber += 1
-        return bitmap
+        return rgba
 
     def drawOnCairoCtx(self, ctx, i):
         raise NotImplementedError
@@ -179,7 +184,72 @@ class FanEffect(CairoEffect):
             ctx.line_to(self.centerx, self.centery)
             ctx.fill()
 
+class RipplesEffect(NumpyEffect):
+    # Reconfigre after this many frames
+    period = 100
+
+
+    # Configuration
+    center = None
+    radiusx = None
+    radiusy = None
+    scalex = None
+    scaley = None
+    power = None
+    speed = None
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('palette', self.make_default_palette())
+        return super(RipplesEffect, self).__init__(*args, **kwargs)
+
+    def make_default_palette(self):
+        rgb0 = (00, 0xa5, 0xa5)
+        rgb1 = (00, 0xff, 0xff)
+        ranges = [np.arange(i, j+1, 10) for (i, j) in zip(rgb0, rgb1)]
+        palette = [(r, g, b) for r in ranges[0] for g in ranges[1] for b in ranges[2]]
+        return np.array([from_rgb(*rgb) for rgb in palette],
+                        dtype=np.uint32)
+
+    def reset(self):
+        self.center = np.random.uniform([0, 0], [self.sizex, self.sizey])
+        self.radiusx = np.random.normal(0)
+        self.radiusy = np.random.normal(0)
+
+        self.scalex = np.random.normal(2, 1)
+        self.scaley = np.random.normal(2, 1)
+
+        self.power = np.random.normal(0.5, 0.1)
+        self.speed = np.random.normal(0.1, 0.01)
+
+    def func(self, t, x, y):
+        t = float(t)
+        return np.sin((
+                    ((x-self.center[0])/self.scalex)**2
+                    +
+                    ((y-self.center[0])/self.scaley)**2
+                )**(self.power)
+                - t*self.speed)
+
+    def drawNumpyFrame(self, i):
+        if i % self.period == 0:
+            self.reset()
+
+        x = np.arange(0, self.sizex)
+        y = np.arange(0, self.sizey)
+        xx, yy = np.meshgrid(x, y, sparse=True)
+
+        res = self.func(i, xx,yy)
+        bins = np.linspace(np.min(res), np.max(res), len(self.palette))
+
+        palette_idxs = np.digitize(res.flatten(), bins, right=True).reshape(res.shape)
+
+        r, g, b = to_rgb(np.array(self.palette)[palette_idxs])
+
+        return np.dstack((r, g, b))
+
+
 ### testing code
+
 
 def main():
 
@@ -196,10 +266,11 @@ def main():
 
     try:
 
-        currentEffect = FanEffect()
+        #currentEffect = FanEffect()
         #currentEffect = WaveEffect()
         #currentEffect = WaveEffect(direction = 1)
         #currentEffect = CenterCircleFillEffect()
+        currentEffect = RipplesEffect()
 
         #currentEffect = CenterSquareFillEffect()
 
@@ -209,9 +280,7 @@ def main():
             r, g, b = to_rgb(bitmap)
 
             data = np.zeros(bitmap.shape + (3,), dtype=np.uint8)
-            data[..., 0] = r
-            data[..., 1] = g
-            data[..., 2] = b
+            data = np.dstack((r, g, b))
             im = Image.fromstring("RGB", bitmap.shape, data.tostring())
             tk_im = ImageTk.PhotoImage(im)
             w.create_image((0, 0), image=tk_im, anchor=Tkinter.NW)
