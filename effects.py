@@ -2,13 +2,16 @@
 #from argparse import ArgumentParser
 #from pieva import *
 #import fastopc as opc
+from math import pi
+import os
+import random
 import time
-import Tkinter
+
 import cairo
 from PIL import Image, ImageTk
+import Tkinter
+
 import numpy as np
-from math import sin, ceil, floor, pi
-from math import radians
 #from screen import *
 
 class Bitmap():
@@ -188,7 +191,6 @@ class RipplesEffect(NumpyEffect):
     # Reconfigre after this many frames
     period = 100
 
-
     # Configuration
     center = None
     radiusx = None
@@ -199,7 +201,9 @@ class RipplesEffect(NumpyEffect):
     speed = None
 
     def __init__(self, *args, **kwargs):
-        kwargs.setdefault('palette', self.make_default_palette())
+        #default_palette = self.make_default_palette()
+        default_palette = self.load_palette()
+        kwargs.setdefault('palette', default_palette)
         return super(RipplesEffect, self).__init__(*args, **kwargs)
 
     def make_default_palette(self):
@@ -209,6 +213,21 @@ class RipplesEffect(NumpyEffect):
         palette = [(r, g, b) for r in ranges[0] for g in ranges[1] for b in ranges[2]]
         return np.array([from_rgb(*rgb) for rgb in palette],
                         dtype=np.uint32)
+
+    def load_palette(self, fname='palettes/green_grass'):
+        palette_matr= np.loadtxt(fname, delimiter=',').astype(np.uint8)
+        return from_rgb(palette_matr[:,0], palette_matr[:,1], palette_matr[:,2])
+
+    def get_palette(self):
+        palettes_dir = 'palettes'
+        palettes = [self.make_default_palette()]
+        for p in os.listdir(palettes_dir):
+            try:
+                palette = self.load_palette(os.path.join(palettes_dir, p))
+                palettes.append(palette)
+            except ValueError:
+                pass
+        return random.choice(palettes)
 
     def reset(self):
         self.center = np.random.uniform([0, 0], [self.sizex, self.sizey])
@@ -220,6 +239,7 @@ class RipplesEffect(NumpyEffect):
 
         self.power = np.random.normal(0.5, 0.1)
         self.speed = np.random.normal(0.1, 0.01)
+        self.palette = self.get_palette()
 
     def func(self, t, x, y):
         t = float(t)
