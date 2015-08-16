@@ -256,12 +256,12 @@ class RipplesEffect(NumpyEffect):
 
         x = np.arange(0, self.sizex)
         y = np.arange(0, self.sizey)
-        xx, yy = np.meshgrid(x, y, sparse=True)
+        xx, yy = np.meshgrid(x, y)
 
         res = self.func(i, xx,yy)
         bins = np.linspace(np.min(res), np.max(res), len(self.palette))
 
-        palette_idxs = np.digitize(res.flatten(), bins, right=True).reshape(res.shape)
+        palette_idxs = np.digitize(res.flatten(), bins[:-1]).reshape(res.shape)
 
         r, g, b = to_rgb(np.array(self.palette)[palette_idxs])
 
