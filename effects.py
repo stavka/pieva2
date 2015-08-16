@@ -192,13 +192,15 @@ class RipplesEffect(NumpyEffect):
     period = 100
 
     # Configuration
-    center = None
-    radiusx = None
-    radiusy = None
-    scalex = None
-    scaley = None
-    power = None
-    speed = None
+    config = {
+        'center': None,
+        'radiusx': None,
+        'radiusy': None,
+        'scalex': None,
+        'scaley': None,
+        'power': None,
+        'speed': None,
+    }
 
     def __init__(self, *args, **kwargs):
         #default_palette = self.make_default_palette()
@@ -230,25 +232,30 @@ class RipplesEffect(NumpyEffect):
         return random.choice(palettes)
 
     def reset(self):
-        self.center = np.random.uniform([0, 0], [self.sizex, self.sizey])
-        self.radiusx = np.random.normal(0)
-        self.radiusy = np.random.normal(0)
+        num_sources = np.random.randint(1, 5)
+        self.configs = [{
+                'center': np.random.uniform([0, 0], [self.sizex, self.sizey]),
+                'radiusx': np.random.normal(0),
+                'radiusy': np.random.normal(0),
 
-        self.scalex = np.random.normal(2, 1)
-        self.scaley = np.random.normal(2, 1)
+                'scalex': np.random.normal(2, 1),
+                'scaley': np.random.normal(2, 1),
 
-        self.power = np.random.normal(0.5, 0.1)
-        self.speed = np.random.normal(0.1, 0.01)
+                'power': np.random.normal(0.5, 0.1),
+                'speed': np.random.normal(0.1, 0.01),
+        } for i in range(num_sources)]
         self.palette = self.get_palette()
 
-    def func(self, t, x, y):
+    def func(self, t, x, y, config=None):
+        if config is None:
+            config = self.config
         t = float(t)
         return np.sin((
-                    ((x-self.center[0])/self.scalex)**2
+                    ((x-config['center'][0])/config['scalex'])**2
                     +
-                    ((y-self.center[0])/self.scaley)**2
-                )**(self.power)
-                - t*self.speed)
+                    ((y-config['center'][0])/config['scaley'])**2
+                )**(config['power'])
+                - t*config['speed'])
 
     def drawNumpyFrame(self, i):
         if i % self.period == 0:
@@ -258,7 +265,7 @@ class RipplesEffect(NumpyEffect):
         y = np.arange(0, self.sizey)
         xx, yy = np.meshgrid(x, y)
 
-        res = self.func(i, xx,yy)
+        res = np.sum(self.func(i, xx,yy, config) for config in self.configs)
         bins = np.linspace(np.min(res), np.max(res), len(self.palette))
 
         palette_idxs = np.digitize(res.flatten(), bins[:-1]).reshape(res.shape)
