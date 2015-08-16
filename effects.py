@@ -191,17 +191,6 @@ class RipplesEffect(NumpyEffect):
     # Reconfigre after this many frames
     period = 100
 
-    # Configuration
-    config = {
-        'center': None,
-        'radiusx': None,
-        'radiusy': None,
-        'scalex': None,
-        'scaley': None,
-        'power': None,
-        'speed': None,
-    }
-
     def __init__(self, *args, **kwargs):
         #default_palette = self.make_default_palette()
         default_palette = self.load_palette()
@@ -233,7 +222,14 @@ class RipplesEffect(NumpyEffect):
 
     def reset(self):
         num_sources = np.random.randint(1, 5)
-        self.configs = [{
+        self.configs = {}
+        [self.add_config() for i in range(num_sources)]
+        self.palette = self.get_palette()
+
+    def make_one_config(self):
+        config_id = max([0] + self.configs.keys()) + 1
+
+        return config_id, {
                 'center': np.random.uniform([0, 0], [self.sizex, self.sizey]),
                 'radiusx': np.random.normal(0),
                 'radiusy': np.random.normal(0),
@@ -243,8 +239,16 @@ class RipplesEffect(NumpyEffect):
 
                 'power': np.random.normal(0.5, 0.1),
                 'speed': np.random.normal(0.1, 0.01),
-        } for i in range(num_sources)]
-        self.palette = self.get_palette()
+        }
+
+    def add_config(self, config_id=None, config=None):
+        if config is None:
+            config_id, config = self.make_one_config()
+        self.configs[config_id] = config
+        return config_id
+
+    def remove_config(self, config_id):
+        del self.configs[config_id]
 
     def func(self, t, x, y, config=None):
         if config is None:
@@ -265,7 +269,7 @@ class RipplesEffect(NumpyEffect):
         y = np.arange(0, self.sizey)
         xx, yy = np.meshgrid(x, y)
 
-        res = np.sum(self.func(i, xx,yy, config) for config in self.configs)
+        res = np.sum(self.func(i, xx,yy, config) for config in self.configs.values())
         bins = np.linspace(np.min(res), np.max(res), len(self.palette))
 
         palette_idxs = np.digitize(res.flatten(), bins[:-1]).reshape(res.shape)
