@@ -73,7 +73,7 @@ grass = NoiseParams(
 
 
 
-screen = Screen(sections) #, ['127.0.0.1:7891'])
+screen = Screen(sections, ['10.0.1.3:7890'])
 screen.dimm(0)
 
 targetFPS = 24
