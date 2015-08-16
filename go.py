@@ -84,7 +84,8 @@ timeCounter = int(random.random() * 65535)
 
 #currentEffect = effects.CenterSquareFillEffect()
 #currentEffect = effects.FanEffect()
-currentEffect = effects.WaveEffect()
+#currentEffect = effects.WaveEffect()
+currentEffect = effects.RipplesEffect()
 
 
 #dispatcher = dispatcher.Dispatcher()
@@ -283,24 +284,25 @@ def main():
 
         print("eina.. Control+C to stop")
         timeCounter = int(random.random() * 65535)
+        global currentEffect
+        print currentEffect
 
         while True:
             startTime = time.time()          
             if oscThread.paired == 1 or oscThread.paired == 0:
                 screen.render(width, height, timeCounter/640., [grass, sun], mainPalette)
-                endTime = time.time()
-                timeToWait = targetFrameTime - (endTime - startTime)
-                #print"Frame time: ", (endTime - startTime)
-                if timeToWait < 0:
-                    #    print("late!", timeToWait)
-                    timeToWait = 0
-                time.sleep(timeToWait)
-                timeCounter +=1
             else:
-                global currentEffect
                 bitmap = currentEffect.drawFrame()
                 screen.send(bitmap)
-                time.sleep(currentEffect.delay)
+            endTime = time.time()
+            timeToWait = targetFrameTime - (endTime - startTime)
+            #print"Frame time: ", (endTime - startTime)
+            if timeToWait < 0:
+            #    print("late!", timeToWait)
+                timeToWait = 0
+            time.sleep(timeToWait)
+            timeCounter +=1
+
 
 
     except (KeyboardInterrupt): #, OSC.OSCClientError, SystemExit):
