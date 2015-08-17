@@ -188,7 +188,7 @@ class FanEffect(CairoEffect):
             ctx.fill()
 
 class RipplesEffect(NumpyEffect):
-    def __init__(self, auto_reset_frames=100, *args, **kwargs):
+    def __init__(self, auto_reset_frames=200, *args, **kwargs):
         #default_palette = self.make_default_palette()
         default_palette = self.load_palette()
         kwargs.setdefault('palette', default_palette)
@@ -239,6 +239,7 @@ class RipplesEffect(NumpyEffect):
 
                 'power': np.random.normal(0.5, 0.1),
                 'speed': np.random.normal(0.1, 0.01),
+                'start_time': self.framenumber,
         }
 
     def add_config(self, config_id=None, config=None):
@@ -257,9 +258,50 @@ class RipplesEffect(NumpyEffect):
         return np.sin((
                     ((x-config['center'][0])/config['scalex'])**2
                     +
-                    ((y-config['center'][0])/config['scaley'])**2
+                    ((y-config['center'][1])/config['scaley'])**2
                 )**(config['power'])
-                - t*config['speed'])
+                - t*config['speed']) + 1
+
+    def make_mask(self, config):
+        xx, yy = np.meshgrid(range(self.sizex), range(self.sizey))
+        centerx, centery = config['center']
+
+        xx = (xx-centerx) / config['scalex']
+        yy = (yy-centery) / config['scaley']
+
+        age = self.framenumber - config['start_time']
+
+        sigm = (age + 5) * (config['speed'])
+        res = np.exp(-4*np.log(2) * ((xx)**2 + (yy)**2) / sigm**2)
+
+        res.shape += (1,)
+        return res
+
+    def render_config(self, t, config):
+        """Renders a single frame for a single ripple given by config.
+
+        Args:
+            t: int frame number
+            config: a ripple config dict
+        Returns:
+            RGBA ripple image.
+        """
+        x = np.arange(0, self.sizex)
+        y = np.arange(0, self.sizey)
+        xx, yy = np.meshgrid(x, y)
+
+        res = self.func(t, xx, yy, config) + 1
+
+        bins = np.linspace(np.min(res), np.max(res), len(self.palette))
+
+        palette_idxs = np.digitize(res.flatten(), bins[:-1]).reshape(res.shape)
+
+        r, g, b = to_rgb(np.array(self.palette)[palette_idxs])
+        mask = self.make_mask(config)
+
+        rgba = np.dstack((r, g, b, mask))
+
+        return rgba
 
     def drawNumpyFrame(self, i):
         if self.period is not None and i % self.period == 0:
@@ -272,14 +314,37 @@ class RipplesEffect(NumpyEffect):
         y = np.arange(0, self.sizey)
         xx, yy = np.meshgrid(x, y)
 
-        res = np.sum(self.func(i, xx,yy, config) for config in self.configs.values())
-        bins = np.linspace(np.min(res), np.max(res), len(self.palette))
+        ripples = [self.render_config(i, config) for config in self.configs.values()]
 
-        palette_idxs = np.digitize(res.flatten(), bins[:-1]).reshape(res.shape)
+        # Null ripple ensures black background.
+        null_ripple = np.zeros_like(ripples[0])
+        null_ripple[:,:,3]=0.01
+        ripples.append(null_ripple)
 
-        r, g, b = to_rgb(np.array(self.palette)[palette_idxs])
+        res = self.blend_rgba_ripples(ripples)
+        return res
 
-        return np.dstack((r, g, b))
+    def blend_rgba_ripples(self, ripples):
+        """Blends a list of ripples.
+
+        Args:
+            ripples: list of RGBA ripple matrices.
+        Returns:
+            Single RGB ripple image.
+        """
+        total_rgba = sum(ripples)
+        total_a = total_rgba[:,:,3]
+        total_a.shape += (1,)
+
+        # Same shape as ripple, but no alpha channel.
+        res = np.zeros(ripples[0].shape[:2] + (3,))
+
+        for ripple in ripples:
+            alpha = ripple[:,:,3]
+            alpha.shape += (1,)
+            res += ripple[:,:,:3] * alpha / total_a
+
+        return res
 
 
 ### testing code
