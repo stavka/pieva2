@@ -189,9 +189,6 @@ class FanEffect(CairoEffect):
 
 class RipplesEffect(NumpyEffect):
     def __init__(self, auto_reset_frames=200, *args, **kwargs):
-        #default_palette = self.make_default_palette()
-        default_palette = self.load_palette()
-        kwargs.setdefault('palette', default_palette)
         # Reconfigre after this many frames. None means don't autoreconfigure.
         self.period = auto_reset_frames
         self.configs = {}
@@ -224,7 +221,6 @@ class RipplesEffect(NumpyEffect):
         num_sources = np.random.randint(1, 5)
         self.configs = {}
         [self.add_config() for i in range(num_sources)]
-        self.palette = self.get_palette()
 
     def make_one_config(self):
         config_id = max([0] + self.configs.keys()) + 1
@@ -240,6 +236,7 @@ class RipplesEffect(NumpyEffect):
                 'power': np.random.normal(0.5, 0.1),
                 'speed': np.random.normal(0.1, 0.01),
                 'start_time': self.framenumber,
+                'palette': self.get_palette(),
         }
 
     def add_config(self, config_id=None, config=None):
@@ -292,11 +289,11 @@ class RipplesEffect(NumpyEffect):
 
         res = self.func(t, xx, yy, config) + 1
 
-        bins = np.linspace(np.min(res), np.max(res), len(self.palette))
+        bins = np.linspace(np.min(res), np.max(res), len(config['palette']))
 
         palette_idxs = np.digitize(res.flatten(), bins[:-1]).reshape(res.shape)
 
-        r, g, b = to_rgb(np.array(self.palette)[palette_idxs])
+        r, g, b = to_rgb(np.array(config['palette'])[palette_idxs])
         mask = self.make_mask(config)
 
         rgba = np.dstack((r, g, b, mask))
