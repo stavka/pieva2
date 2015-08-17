@@ -188,13 +188,13 @@ class FanEffect(CairoEffect):
             ctx.fill()
 
 class RipplesEffect(NumpyEffect):
-    # Reconfigre after this many frames
-    period = 100
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, auto_reset_frames=100, *args, **kwargs):
         #default_palette = self.make_default_palette()
         default_palette = self.load_palette()
         kwargs.setdefault('palette', default_palette)
+        # Reconfigre after this many frames. None means don't autoreconfigure.
+        self.period = auto_reset_frames
+        self.configs = {}
         return super(RipplesEffect, self).__init__(*args, **kwargs)
 
     def make_default_palette(self):
@@ -262,8 +262,11 @@ class RipplesEffect(NumpyEffect):
                 - t*config['speed'])
 
     def drawNumpyFrame(self, i):
-        if i % self.period == 0:
+        if self.period is not None and i % self.period == 0:
             self.reset()
+
+        if not self.configs:
+            return np.zeros((self.sizex, self.sizey, 3))
 
         x = np.arange(0, self.sizex)
         y = np.arange(0, self.sizey)

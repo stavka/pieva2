@@ -29,8 +29,8 @@ class NoiseParams:
     xScrollSpeed = 0
     yScrollSpeed = 0
     amplitude = 127
-    offset = 128 
-    
+    offset = 128
+
     def __init__(self, octaves, persistence, lacunarity, wavelength, xScrollSpeed, yScrollSpeed, amplitude, offset):
         self.octaves = octaves
         self.persistence = persistence
@@ -40,7 +40,7 @@ class NoiseParams:
         self.yScrollSpeed = yScrollSpeed
         self.amplitude = amplitude
         self.offset = offset
-        
+
 #paletteFileCSV="palettes/green_grass"#
 #paletteFileCSV="palettes/rainbow"
 #paletteFileCSV="palettes/pink"
@@ -52,28 +52,28 @@ width = 140
 height = 140
 
 sun = NoiseParams(
-    octaves = 1, 
-    persistence = 0.5, 
-    lacunarity = 2.0, 
-    wavelength = width * 8.0, 
-    xScrollSpeed = 1, 
-    yScrollSpeed = 0, 
-    amplitude = 95, 
+    octaves = 1,
+    persistence = 0.5,
+    lacunarity = 2.0,
+    wavelength = width * 8.0,
+    xScrollSpeed = 1,
+    yScrollSpeed = 0,
+    amplitude = 95,
     offset = 140)
 
 grass = NoiseParams(
-    octaves = 4, 
-    persistence = 0.702, 
-    lacunarity = 2.0, 
-    wavelength = width / 8, 
-    xScrollSpeed = 0, 
-    yScrollSpeed = 5, 
-    amplitude = 120, 
+    octaves = 4,
+    persistence = 0.702,
+    lacunarity = 2.0,
+    wavelength = width / 8,
+    xScrollSpeed = 0,
+    yScrollSpeed = 5,
+    amplitude = 120,
     offset = 120)
 
 
 
-screen = Screen(sections, ['10.0.1.3:7890'])
+screen = Screen(sections)#, ['10.0.1.3:7890'])
 screen.dimm(0)
 
 targetFPS = 24
@@ -85,14 +85,14 @@ timeCounter = int(random.random() * 65535)
 #currentEffect = effects.CenterSquareFillEffect()
 #currentEffect = effects.FanEffect()
 #currentEffect = effects.WaveEffect()
-currentEffect = effects.RipplesEffect()
+currentEffect = effects.RipplesEffect(auto_reset_frames=None)
 
 
 #dispatcher = dispatcher.Dispatcher()
 #dispatcher.map("/MM_Remote/Control/objectPosition", set_pallete, "Set Pallete: " )
 #dispatcher.map("/volume", set_pallete, "Pallete")
 
-                
+
 #server = osc_server.ThreadingOSCUDPServer(  ('127.0.0.1', 54321), dispatcher)
 #print("Serving on {}".format(server.server_address))
 #server.serve_forever()
@@ -103,24 +103,24 @@ send_address = ('localhost', 12345)
 paired = 0
 
 class OSCThread(threading.Thread):
-    
+
     ########### pyosc stuff
     # define a message-handler function for the server to call.
     def printing_handler(self, addr, tags, stuff, source):
         msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
         print "OSCServer Got: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
-                
+
         # send a reply to the client.
         msg = OSC.OSCMessage("/printed")
         msg.append(msg_string)
         return msg
-    
+
     # define a message-handler function for the server to call.
     def pallete_handler(self, addr, tags, stuff, source):
         msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
         print "PHOSCServer Got: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
-        
-    
+
+
         global mainPalette
         global greenPalette
         global rainbowPalette
@@ -129,21 +129,21 @@ class OSCThread(threading.Thread):
             print "Switching palette to green"
             mainPalette = greenPalette
             display_img('palettes/test.png')
-    
+
         if (stuff[0] == 1):
             print "Switching palette to rainbow"
             mainPalette = rainbowPalette
         if (stuff[0] == 2):
             print "Switching palette to pink"
             mainPalette = pinkPalette
-            
-            
+
+
     def pairing_handler(self, addr, tags, stuff, source):
-        
+
         msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
         print "Got pairing message: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
-        self.paired = 1 
-               
+        self.paired = 1
+
         print "Subscribing..."
         #self.c2 = OSC.OSCClient()
         #self.c2.connect(send_address)
@@ -153,33 +153,50 @@ class OSCThread(threading.Thread):
         self.c2.send(subreq)
 
     def objectID_handler(self, addr, tags, stuff, source):
-        
+
         msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
-        print "Got Object ID message: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
-        
-        
+        #print "Got Object ID message: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
+
         if self.objectID_lock.acquire(False):
+            prev_objects = self.activeObjects
             try:
-                self.activeObjects = np.zeros([5,10])
+                self.activeObjects = set()
                 for i in xrange(0, len(stuff), 2):
                     group = stuff[i]
                     objectid = stuff[i+1]
-                    print "Object: ", group, ":",  objectid, "is active"
-                    self.activeObjects[group][objectid] = 1
+                    #print "Object: ", group, ":",  objectid, "is active"
+                    self.activeObjects.add( (group, objectid) )
+
+                if self.activeObjects != prev_objects:
+                    for groupid, objectid in self.activeObjects - prev_objects:
+                        if self.new_object_listener is not None:
+                            self.new_object_listener(groupid, objectid)
+                    for groupid, objectid in prev_objects - self.activeObjects:
+                        if self.removed_object_listener is not None:
+                            self.removed_object_listener(groupid, objectid)
             finally:
                 self.objectID_lock.release()
-        
-            
-    
-    
+
+    def add_new_object_listener(self, listener):
+        """Listener: func(group, object_id)."""
+        self.new_object_listener = listener
+
+    def add_removed_object_listener(self, listener):
+        """Listener: func(group, object_id)."""
+        self.removed_object_listener = listener
+
+
     def __init__(self, send_address, listen_address):
         super(OSCThread, self).__init__()
         self.stoprequest = threading.Event()
         self.s = OSC.ThreadingOSCServer(listen_address)
-        
+
         self.objectID_lock = threading.Lock()
-        self.activeObjects = np.zeros([5,10])
-        
+        self.activeObjects = set()
+
+        self.new_object_listener = None
+        self.removed_object_listener = None
+
         # Set Server to return errors as OSCMessages to "/error"
         self.s.setSrvErrorPrefix("/error")
         # Set Server to reply to server-info requests with OSCMessages to "/serverinfo"
@@ -193,19 +210,19 @@ class OSCThread(threading.Thread):
         self.s.addMsgHandler("default", self.printing_handler)
         #s.addMsgHandler("/MM_Remote/Control/activeObjectsID", pallete_handler)
         self.s.addMsgHandler("/MM_Remote/Control/activeObjectsID", self.objectID_handler)
-        
+
         self.s.addMsgHandler("/MM_Remote/Control/activeObjectsPosition", self.pallete_handler)
         self.s.addMsgHandler("/MM_Remote/Global/pairingAccepted", self.pairing_handler)
 
         print "Registered Callback-functions:"
         for addr in self.s.getOSCAddressSpace():
             print addr
-        
+
         print "\nStarting OSCServer. Use ctrl-C to quit."
         self.st = threading.Thread(target=self.s.serve_forever)
         self.st.start()
-        
-            
+
+
         self.c2 = OSC.OSCClient()
         self.c2.connect(send_address)
         #subreq = OSC.OSCMessage("/MashMachine/Control/getActiveObjectsPosition")
@@ -213,7 +230,7 @@ class OSCThread(threading.Thread):
 
         tries = 10
         self.paired = 0
-        
+
         try:
             while self.paired == 0 and tries > 0:
                 try:
@@ -225,9 +242,9 @@ class OSCThread(threading.Thread):
                     subreq.append(listen_address[1])
                     self.c2.send(subreq)
 
-                    
+
                 except(OSC.OSCClientError):
-                    print "Pairing or Subscribing failed.."   
+                    print "Pairing or Subscribing failed.."
                 time.sleep(1)
                 tries -=1
         except(KeyboardInterrupt):
@@ -239,12 +256,12 @@ class OSCThread(threading.Thread):
             self.paired = 2
 
 
-        
+
     def join(self, timeout=None):
         self.stoprequest.set()
         self.close_threads()
         super(OSCThread, self).join(timeout)
-        
+
     def close_threads(self):
         print "\nClosing OSCServer."
         self.s.close()
@@ -257,27 +274,27 @@ class OSCThread(threading.Thread):
 
         try:
             print "Starting OSC thread..."
-    
+
             while not self.stoprequest.isSet():
                 #check messages
 #OSCServer Got: '/MM_Remote/Control/activeObjectsID [iiiiii] [1, 1, 1, 2, 1, 0]' from localhost:52094
                 print "Sleeping..."
                 time.sleep(0.5)
-        
-    
+
+
         except (KeyboardInterrupt, OSC.OSCClientError, SystemExit):
             self.close_threads()
             #raise
 
 
 def main():
-    
+
     print "!Main Starting..."
-    
+
     try:
-    
+
         #oscThread = threading.Thread(target = oscThreadFunction, args = (send_address, listen_address ))
-        
+
         oscThread = OSCThread(send_address, listen_address)
         oscThread.start()
         print "Paired: ", oscThread.paired
@@ -287,9 +304,25 @@ def main():
         global currentEffect
         print currentEffect
 
+        known_objects = {
+                # (groupid, objectid): effect_config_id,
+        }
+
+        if isinstance(currentEffect, effects.RipplesEffect):
+            def on_new_object(groupid, objectid):
+                config_id = currentEffect.add_config()
+                known_objects[(groupid, objectid)] = config_id
+            def on_removed_object(groupid, objectid):
+                config_id = known_objects[(groupid, objectid)]
+                currentEffect.remove_config(config_id)
+                del known_objects[(groupid, objectid)]
+
+            oscThread.add_new_object_listener(on_new_object)
+            oscThread.add_removed_object_listener(on_removed_object)
+
         while True:
-            startTime = time.time()          
-            if oscThread.paired == 1 or oscThread.paired == 0:
+            startTime = time.time()
+            if False: #oscThread.paired == 1 or oscThread.paired == 0:
                 screen.render(width, height, timeCounter/640., [grass, sun], mainPalette)
             else:
                 bitmap = currentEffect.drawFrame()
