@@ -12,7 +12,7 @@ def main():
         effect.drawFrame()
 
     start = time.time()
-    for i in range(10):
+    for i in range(100):
         effect.drawFrame()
     print 'drawn 100 frames in', (time.time()-start)
 
