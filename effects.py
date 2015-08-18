@@ -47,11 +47,66 @@ class Effect(object):
         self.framenumber = 0
         self.sizex = sizex
         self.sizey = sizey
+        self.configs = {}
 
     def drawFrame(self):
         bitmap = np.zeros([self.sizex,self.sizey])
         bitmap[20:40, 20:40] = self.palette[0]  ###  example
         return bitmap
+    
+    def make_default_palette(self):
+        rgb0 = (00, 0xa5, 0xa5)
+        rgb1 = (00, 0xff, 0xff)
+        ranges = [np.arange(i, j+1, 10) for (i, j) in zip(rgb0, rgb1)]
+        palette = [(r, g, b) for r in ranges[0] for g in ranges[1] for b in ranges[2]]
+        return np.array([from_rgb(*rgb) for rgb in palette],
+                        dtype=np.uint32)
+
+    def load_palette(self, fname='palettes/green_grass'):
+        palette_matr= np.loadtxt(fname, delimiter=',').astype(np.uint8)
+        return from_rgb(palette_matr[:,0], palette_matr[:,1], palette_matr[:,2])
+
+    def get_palette(self):
+        palettes_dir = 'palettes'
+        palettes = [self.make_default_palette()]
+        for p in os.listdir(palettes_dir):
+            try:
+                palette = self.load_palette(os.path.join(palettes_dir, p))
+                palettes.append(palette)
+            except ValueError:
+                pass
+        return random.choice(palettes)[::20]
+
+    def reset(self):
+        num_sources = np.random.randint(1, 5)
+        self.configs = {}
+        [self.add_config() for i in range(num_sources)]
+
+    def make_one_config(self):
+        config_id = max([0] + self.configs.keys()) + 1
+
+        return config_id, {
+                'center': np.random.uniform([0, 0], [self.sizex, self.sizey]),
+                'radiusx': np.random.normal(0),
+                'radiusy': np.random.normal(0),
+
+                'scalex': np.random.normal(2, 1),
+                'scaley': np.random.normal(2, 1),
+
+                'power': np.random.normal(0.5, 0.1),
+                'speed': np.random.normal(0.1, 0.01),
+                'start_time': self.framenumber,
+                'palette': self.get_palette(),
+        }
+
+    def add_config(self, config_id=None, config=None):
+        if config is None:
+            config_id, config = self.make_one_config()
+        self.configs[config_id] = config
+        return config_id
+
+    def remove_config(self, config_id):
+        del self.configs[config_id]
 
 
 class CenterSquareFillEffect(Effect):
@@ -191,62 +246,10 @@ class RipplesEffect(NumpyEffect):
     def __init__(self, auto_reset_frames=200, *args, **kwargs):
         # Reconfigre after this many frames. None means don't autoreconfigure.
         self.period = auto_reset_frames
-        self.configs = {}
+        
         return super(RipplesEffect, self).__init__(*args, **kwargs)
 
-    def make_default_palette(self):
-        rgb0 = (00, 0xa5, 0xa5)
-        rgb1 = (00, 0xff, 0xff)
-        ranges = [np.arange(i, j+1, 10) for (i, j) in zip(rgb0, rgb1)]
-        palette = [(r, g, b) for r in ranges[0] for g in ranges[1] for b in ranges[2]]
-        return np.array([from_rgb(*rgb) for rgb in palette],
-                        dtype=np.uint32)
 
-    def load_palette(self, fname='palettes/green_grass'):
-        palette_matr= np.loadtxt(fname, delimiter=',').astype(np.uint8)
-        return from_rgb(palette_matr[:,0], palette_matr[:,1], palette_matr[:,2])
-
-    def get_palette(self):
-        palettes_dir = 'palettes'
-        palettes = [self.make_default_palette()]
-        for p in os.listdir(palettes_dir):
-            try:
-                palette = self.load_palette(os.path.join(palettes_dir, p))
-                palettes.append(palette)
-            except ValueError:
-                pass
-        return random.choice(palettes)[::20]
-
-    def reset(self):
-        num_sources = np.random.randint(1, 5)
-        self.configs = {}
-        [self.add_config() for i in range(num_sources)]
-
-    def make_one_config(self):
-        config_id = max([0] + self.configs.keys()) + 1
-
-        return config_id, {
-                'center': np.random.uniform([0, 0], [self.sizex, self.sizey]),
-                'radiusx': np.random.normal(0),
-                'radiusy': np.random.normal(0),
-
-                'scalex': np.random.normal(2, 1),
-                'scaley': np.random.normal(2, 1),
-
-                'power': np.random.normal(0.5, 0.1),
-                'speed': np.random.normal(0.1, 0.01),
-                'start_time': self.framenumber,
-                'palette': self.get_palette(),
-        }
-
-    def add_config(self, config_id=None, config=None):
-        if config is None:
-            config_id, config = self.make_one_config()
-        self.configs[config_id] = config
-        return config_id
-
-    def remove_config(self, config_id):
-        del self.configs[config_id]
 
     def func(self, t, x, y, config=None):
         if config is None:
