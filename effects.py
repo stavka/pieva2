@@ -301,7 +301,7 @@ class RipplesEffect(NumpyEffect):
         return rgba
 
     def drawNumpyFrame(self, i):
-        if self.period is not None and i % self.period == 0:
+        if self.period and i % self.period == 0:
             self.reset()
 
         if not self.configs:
