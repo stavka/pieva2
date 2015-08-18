@@ -300,9 +300,9 @@ class RipplesEffect(NumpyEffect):
 
         for ripple in ripples:
             alpha = np.atleast_3d(ripple[:,:,3])
-            res += ripple * alpha / total_a
+            res += ripple * alpha
 
-        return res[:,:,:3]
+        return res[:,:,:3] / total_a
 
 
 ### testing code
