@@ -14,6 +14,8 @@ import Tkinter
 import numpy as np
 #from screen import *
 
+import c_ripples
+
 class Bitmap():
 
     def __init__(self, sizex, sizey):
@@ -25,12 +27,18 @@ class Bitmap():
         except:
             pass
 
-
+class Benchmark(object):
+    def __init__(self, name):
+        self.name= name
+    def __enter__(self):
+        self.start = time.time()
+    def __exit__(self, *args):
+        print self.name + ": " + str(time.time() - self.start)
 def to_rgb(color):
     """ 0xffffff -> (255, 255, 255)."""
-    b = np.array(color & 255).astype(np.uint8)
-    g = np.array((color >> 8) & 255).astype(np.uint8)
-    r = np.array((color >> 16) & 255).astype(np.uint8)
+    b = (color & 255).astype(np.uint8)
+    g = ((color >> 8) & 255).astype(np.uint8)
+    r = ((color >> 16) & 255).astype(np.uint8)
     return (r, g, b)
 
 def from_rgb(r,g,b):
@@ -251,57 +259,8 @@ class RipplesEffect(NumpyEffect):
 
 
 
-    def func(self, t, x, y, config=None):
-        if config is None:
-            config = self.config
-        t = float(t)
-        return np.sin((
-                    ((x-config['center'][0])/config['scalex'])**2
-                    +
-                    ((y-config['center'][1])/config['scaley'])**2
-                )**(config['power'])
-                - t*config['speed']) + 1
-
-    def make_mask(self, config):
-        xx, yy = np.meshgrid(range(self.sizex), range(self.sizey))
-        centerx, centery = config['center']
-
-        xx = (xx-centerx) / config['scalex']
-        yy = (yy-centery) / config['scaley']
-
-        age = self.framenumber - config['start_time']
-
-        sigm = (age + 5) * (config['speed'])
-        res = np.exp(-4*np.log(2) * ((xx)**2 + (yy)**2) / sigm**2)
-
-        res.shape += (1,)
-        return res
-
-    def render_config(self, t, config):
-        """Renders a single frame for a single ripple given by config.
-
-        Args:
-            t: int frame number
-            config: a ripple config dict
-        Returns:
-            RGBA ripple image.
-        """
-        x = np.arange(0, self.sizex)
-        y = np.arange(0, self.sizey)
-        xx, yy = np.meshgrid(x, y)
-
-        res = self.func(t, xx, yy, config) + 1
-
-        bins = np.linspace(np.min(res), np.max(res), len(config['palette']))
-
-        palette_idxs = np.digitize(res.flatten(), bins[:-1]).reshape(res.shape)
-
-        r, g, b = to_rgb(np.array(config['palette'])[palette_idxs])
-        mask = self.make_mask(config)
-
-        rgba = np.dstack((r, g, b, mask))
-
-        return rgba
+    def func(self, t, x, y, config):
+        return c_ripples.func(t, x, y, config)
 
     def drawNumpyFrame(self, i):
         if self.period and i % self.period == 0:
@@ -314,14 +273,15 @@ class RipplesEffect(NumpyEffect):
         y = np.arange(0, self.sizey)
         xx, yy = np.meshgrid(x, y)
 
-        ripples = [self.render_config(i, config) for config in self.configs.values()]
+        ripples = [c_ripples.render_config(self.sizex, self.sizey, i, config) for config in self.configs.values()]
 
         # Null ripple ensures black background.
         null_ripple = np.zeros_like(ripples[0])
         null_ripple[:,:,3]=0.01
         ripples.append(null_ripple)
 
-        res = self.blend_rgba_ripples(ripples)
+        with Benchmark("blend"):
+            res = self.blend_rgba_ripples(ripples)
         return res
 
     def blend_rgba_ripples(self, ripples):
