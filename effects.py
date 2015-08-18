@@ -330,18 +330,16 @@ class RipplesEffect(NumpyEffect):
             Single RGB ripple image.
         """
         total_rgba = sum(ripples)
-        total_a = total_rgba[:,:,3]
-        total_a.shape += (1,)
+        total_a = np.atleast_3d(total_rgba[:,:,3])
 
-        # Same shape as ripple, but no alpha channel.
-        res = np.zeros(ripples[0].shape[:2] + (3,))
+        # Same shape as ripple, but alpha channel is ignored.
+        res = np.zeros(ripples[0].shape[:2] + (4,))
 
         for ripple in ripples:
-            alpha = ripple[:,:,3]
-            alpha.shape += (1,)
-            res += ripple[:,:,:3] * alpha / total_a
+            alpha = np.atleast_3d(ripple[:,:,3])
+            res += ripple * alpha / total_a
 
-        return res
+        return res[:,:,:3]
 
 
 ### testing code
