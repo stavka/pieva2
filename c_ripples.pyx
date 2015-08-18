@@ -2,6 +2,7 @@ import time
 import numpy as np
 cimport numpy as np
 cimport cython
+import sys
 
 from libc.math cimport sin, log, exp, pow
 
@@ -17,7 +18,8 @@ class Benchmark(object):
     def __enter__(self):
         self.start = time.time()
     def __exit__(self, *args):
-        print self.name + ": " + str(time.time() - self.start)
+        if 'debug' in sys.argv:
+            print self.name + ": " + str(time.time() - self.start)
 
 
 @cython.cdivision(True) # turn off /0 check.
@@ -86,7 +88,6 @@ cdef np.ndarray[np.double_t, ndim=3] _render_config(int sizex, int sizey, int t,
             bins = np.linspace(np.min(res), np.max(res), len(palette))
 
         with Benchmark("digitize"):
-            print 'palette len', len(palette)
             palette_idxs = np.digitize(res.flatten(), bins[:-1])
 
         with Benchmark("hui"):
