@@ -13,6 +13,7 @@ import Tkinter
 
 import numpy as np
 #from screen import *
+import sys
 
 import c_ripples
 
@@ -33,7 +34,9 @@ class Benchmark(object):
     def __enter__(self):
         self.start = time.time()
     def __exit__(self, *args):
-        print self.name + ": " + str(time.time() - self.start)
+        if 'debug' in sys.argv:
+            print self.name + ": " + str(time.time() - self.start)
+
 def to_rgb(color):
     """ 0xffffff -> (255, 255, 255)."""
     b = (color & 255).astype(np.uint8)
