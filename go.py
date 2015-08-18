@@ -15,6 +15,21 @@ import sys
 import effects
 
 
+screen = Screen(sections)#, ['10.0.1.3:7890'])
+screen.dimm(0)
+
+dotargetFPS = 1
+targetFPS = 24
+targetFrameTime = 1./targetFPS
+timeCounter = int(random.random() * 65535)
+
+currentEffectID = 0
+
+
+listen_address = ('localhost', 54321)
+send_address = ('localhost', 12345)
+paired = 0
+
 greenPalette = ColorPalette(CSVfilename="palettes/green_grass")
 rainbowPalette = ColorPalette(CSVfilename="palettes/rainbow")
 pinkPalette = ColorPalette(CSVfilename="palettes/pink")
@@ -41,13 +56,6 @@ class NoiseParams:
         self.amplitude = amplitude
         self.offset = offset
 
-#paletteFileCSV="palettes/green_grass"#
-#paletteFileCSV="palettes/rainbow"
-#paletteFileCSV="palettes/pink"
-#mainPalette = ColorPalette(CSVfilename=paletteFileCSV)
-
-
-
 width = 140
 height = 140
 
@@ -73,34 +81,7 @@ grass = NoiseParams(
 
 
 
-screen = Screen(sections)#, ['10.0.1.3:7890'])
-screen.dimm(0)
 
-targetFPS = 24
-targetFrameTime = 1./targetFPS
-timeCounter = int(random.random() * 65535)
-
-
-
-#currentEffect = effects.CenterSquareFillEffect()
-#currentEffect = effects.FanEffect()
-#currentEffect = effects.WaveEffect()
-currentEffect = effects.RipplesEffect(auto_reset_frames=None)
-
-
-#dispatcher = dispatcher.Dispatcher()
-#dispatcher.map("/MM_Remote/Control/objectPosition", set_pallete, "Set Pallete: " )
-#dispatcher.map("/volume", set_pallete, "Pallete")
-
-
-#server = osc_server.ThreadingOSCUDPServer(  ('127.0.0.1', 54321), dispatcher)
-#print("Serving on {}".format(server.server_address))
-#server.serve_forever()
-
-
-listen_address = ('localhost', 54321)
-send_address = ('localhost', 12345)
-paired = 0
 
 class OSCThread(threading.Thread):
 
@@ -301,21 +282,28 @@ def main():
 
         print("eina.. Control+C to stop")
         timeCounter = int(random.random() * 65535)
-        global currentEffect
-        print currentEffect
+        alleffects = [ effects.CenterSquareFillEffect(),
+                   effects.FanEffect(),
+                   effects.WaveEffect(),
+                   effects.RipplesEffect(auto_reset_frames=None),
+                   ]
+        global currentEffectID
+        print alleffects[currentEffectID]
 
         known_objects = {
                 # (groupid, objectid): effect_config_id,
         }
 
-        if isinstance(currentEffect, effects.RipplesEffect):
-            def on_new_object(groupid, objectid):
-                config_id = currentEffect.add_config()
+
+        def on_new_object(groupid, objectid):
+            for effect in effects:
+                config_id = alleffects.add_config()
                 known_objects[(groupid, objectid)] = config_id
-            def on_removed_object(groupid, objectid):
+        def on_removed_object(groupid, objectid):
+            for effect in alleffects:
                 config_id = known_objects[(groupid, objectid)]
-                currentEffect.remove_config(config_id)
-                del known_objects[(groupid, objectid)]
+                effect.remove_config(config_id)
+            del known_objects[(groupid, objectid)]
 
             oscThread.add_new_object_listener(on_new_object)
             oscThread.add_removed_object_listener(on_removed_object)
@@ -325,15 +313,18 @@ def main():
             if False: #oscThread.paired == 1 or oscThread.paired == 0:
                 screen.render(width, height, timeCounter/640., [grass, sun], mainPalette)
             else:
-                bitmap = currentEffect.drawFrame()
+                bitmap = alleffects[currentEffectID].drawFrame()
                 screen.send(bitmap)
-            endTime = time.time()
-            timeToWait = targetFrameTime - (endTime - startTime)
-            #print"Frame time: ", (endTime - startTime)
-            if timeToWait < 0:
-            #    print("late!", timeToWait)
-                timeToWait = 0
-            time.sleep(timeToWait)
+
+            if dotargetFPS:
+                endTime = time.time()
+            
+                timeToWait = targetFrameTime - (endTime - startTime)
+                #print"Frame time: ", (endTime - startTime)
+                if timeToWait < 0:
+                #    print("late!", timeToWait)
+                    timeToWait = 0
+                time.sleep(timeToWait)
             timeCounter +=1
 
 
