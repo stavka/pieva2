@@ -215,7 +215,7 @@ class RipplesEffect(NumpyEffect):
                 palettes.append(palette)
             except ValueError:
                 pass
-        return random.choice(palettes)
+        return random.choice(palettes)[::20]
 
     def reset(self):
         num_sources = np.random.randint(1, 5)
