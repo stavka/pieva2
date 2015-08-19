@@ -24,6 +24,7 @@ targetFrameTime = 1./targetFPS
 timeCounter = int(random.random() * 65535)
 
 currentEffectID = 0
+effectsSize = 0
 
 
 listen_address = ('localhost', 54321)
@@ -80,7 +81,16 @@ grass = NoiseParams(
     offset = 120)
 
 
-
+def switch_effects(effectID = None):
+    global currentEffectID
+    global effectsSize
+    if effectID == None:
+        currentEffectID +=1
+    else:
+        currentEffectID = effectID
+    if currentEffectID >= effectsSize:
+        currentEffectID = 0
+        
 
 
 class OSCThread(threading.Thread):
@@ -109,7 +119,7 @@ class OSCThread(threading.Thread):
         if (stuff[0] == 0):
             print "Switching palette to green"
             mainPalette = greenPalette
-            display_img('palettes/test.png')
+            #display_img('palettes/test.png')
 
         if (stuff[0] == 1):
             print "Switching palette to rainbow"
@@ -152,6 +162,8 @@ class OSCThread(threading.Thread):
                     for groupid, objectid in self.activeObjects - prev_objects:
                         if self.new_object_listener is not None:
                             self.new_object_listener(groupid, objectid)
+                        if groupid == 100 and objectid == 10:
+                            switch_effects()
                     for groupid, objectid in prev_objects - self.activeObjects:
                         if self.removed_object_listener is not None:
                             self.removed_object_listener(groupid, objectid)
@@ -282,12 +294,15 @@ def main():
 
         print("eina.. Control+C to stop")
         timeCounter = int(random.random() * 65535)
-        alleffects = [ effects.CenterSquareFillEffect(),
+        alleffects = [ effects.Effect(),
+                      effects.CenterSquareFillEffect(),
                    effects.FanEffect(),
                    effects.WaveEffect(),
                    effects.RipplesEffect(auto_reset_frames=None),
                    ]
         global currentEffectID
+        global effectsSize
+        effectsSize = len(alleffects)
         print alleffects[currentEffectID]
 
         known_objects = {
@@ -310,7 +325,7 @@ def main():
 
         while True:
             startTime = time.time()
-            if False: #oscThread.paired == 1 or oscThread.paired == 0:
+            if currentEffectID == 0: #oscThread.paired == 1 or oscThread.paired == 0:
                 screen.render(width, height, timeCounter/640., [grass, sun], mainPalette)
             else:
                 bitmap = alleffects[currentEffectID].drawFrame()
