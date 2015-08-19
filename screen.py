@@ -53,7 +53,7 @@ class Screen():
         for out in self.opcServers:
             out.putPixels(0, tosend)
 
-    def render(self, width, height, time, noiseList, palette):
-        tosend = core.PixelMapper.render(width, height, time, self.pixelMapPacked, palette.packed, noiseList, self.dimmBy)
+    def render(self, width, height, t, noiseList, palette):
+        tosend = core.PixelMapper.render(width, height, t, self.pixelMapPacked, palette.packed, noiseList, self.dimmBy)
         for out in self.opcServers:
             out.putPixels(0, tosend)
