@@ -90,6 +90,7 @@ def switch_effects(effectID = None):
         currentEffectID = effectID
     if currentEffectID >= effectsSize:
         currentEffectID = 0
+    print "Switched effect to: ", currentEffectID
         
 
 

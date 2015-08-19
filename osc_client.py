@@ -2,7 +2,7 @@
 
 
 import OSC
-
+import sys
 
 
 listen_address = ('localhost', 54321)
@@ -14,14 +14,15 @@ c2.connect(listen_address)
 
 try:
 
-    print "Sending..."
+    
     subreq = OSC.OSCMessage("/MM_Remote/Control/activeObjectsID")
     subreq.append(1)
     subreq.append(1)
     subreq.append(1)
     subreq.append(2)
-    subreq.append(2)
-    subreq.append(0)
+    for arg in sys.argv[1:]:
+        subreq.append(int(arg))
+    print "Sending...", subreq
     c2.send(subreq)
 
     
