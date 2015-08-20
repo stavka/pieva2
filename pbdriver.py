@@ -40,4 +40,7 @@ class DriverPievaX4(DriverPieva):
 
 class DriverPievaX4Rev(DriverPieva):
     def draw(self, bitmap, i, rgb):
-        raise("Not implemented")
+        bitmap[70 - (i % self.width)][70 - (i / self.height)] = rgb
+        bitmap[70 - (i / self.height)][70 + (i % self.width)] = rgb
+        bitmap[70 + (i / self.height)][70 - (i % self.width)] = rgb
+        bitmap[70 + (i % self.width)][70 + (i / self.height)] = rgb
