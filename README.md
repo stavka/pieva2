@@ -26,3 +26,14 @@ More info, contacts, etc at:
  * http://www.degantiszmogus.lt
  * http://wemakethings.net
 
+Development
+===========
+ * install python dependencies: `pip install svg.path numpy`
+ * pull git submodules: `git submodule foreach git pull`
+ * build openpixelcontrol: `cd openpixelcontrol && make`
+ * build and install pixelmapper: `./setup.py install`
+ * install pyOSC: `pip install pyOSC --pre`
+ * openpixelcontrol-based preview server can be run using `bin/preview.sh`
+   (or `openpixelcontrol/bin/gl_server -l conf/pieva-layout.json`)
+ * default OPC server is 127.0.0.1:7890, can be overriden using `OPC_SERVER`
+   environment variable.
