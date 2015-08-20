@@ -125,26 +125,28 @@ class Recorder:
 
         return frequency_store
 
-class EQ(BaseMatrixAnim):
 
-    def __init__(self, led, minFrequency, maxFrequency):
-        super(EQ, self).__init__(led)
+class BaseEQAnim(BaseMatrixAnim):
+    def __init__(self, led, minFrequency, maxFrequency, sensitivity):
+        super(BaseEQAnim, self).__init__(led)
         self.rec = Recorder()
         self.rec.setup()
         self.rec.continuousStart()
         self.colors = [colors.hue_helper(y, self.height, 0) for y in range(self.height)]
         self.frequency_limits = self.rec.calculate_channel_frequency(minFrequency, maxFrequency, self.width)
+        self.sensitivity = sensitivity
 
     def endRecord(self):
         self.rec.continuousEnd()
 
+
+class EQ(BaseEQAnim):
     def step(self, amt = 1):
         self._led.all_off()
         eq_data = self.rec.calculate_levels(self.frequency_limits, self.width)
         for x in range(self.width):
             # normalize output
-            #height = (eq_data[x] - 10.2) / 5
-            height = (eq_data[x] - 10.2) / 3
+            height = (eq_data[x] - 10.2) / float(self.sensitivity)
             if height < .05:
                 height = .05
             elif height > 1.0:
@@ -158,26 +160,15 @@ class EQ(BaseMatrixAnim):
 
         self._step += amt
 
-class BassPulse(BaseMatrixAnim):
 
-    def __init__(self, led, minFrequency, maxFrequency):
-        super(BassPulse, self).__init__(led)
-        self.rec = Recorder()
-        self.rec.setup()
-        self.rec.continuousStart()
-        self.colors = [colors.hue_helper(y, self.height, 0) for y in range(self.height)]
-        self.frequency_limits = self.rec.calculate_channel_frequency(minFrequency, maxFrequency, self.width)
-
-    def endRecord(self):
-        self.rec.continuousEnd()
-
+class BassPulse(BaseEQAnim):
     def step(self, amt = 1):
         self._led.all_off()
         eq_data = self.rec.calculate_levels(self.frequency_limits, self.width)
 
         # only take bass values and draw circles with that value
         # normalize output
-        height = (eq_data[0] - 9.0) / 5
+        height = (eq_data[0] - 9.0) / float(self.sensitivity)
         if height < .05:
             height = .05
         elif height > 1.0:

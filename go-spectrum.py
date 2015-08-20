@@ -14,6 +14,7 @@ if __name__ == '__main__':
     parser.add_argument('--fps', default=20)
     parser.add_argument('--min_freq', default=50)    # 50 Hz
     parser.add_argument('--max_freq', default=15000) # 15000 Hz
+    parser.add_argument('--sensitivity', default=3)  # lower is more sensitive
     args = parser.parse_args()
 
     if args.display == 'full':
@@ -32,9 +33,9 @@ if __name__ == '__main__':
     led.setMasterBrightness(255)
 
     if args.anim == 'eq':
-        anim = EQ(led, args.min_freq, args.max_freq)
+        anim = EQ(led, args.min_freq, args.max_freq, args.sensitivity)
     elif args.anim == 'bass':
-        anim = BassPulse(led, args.min_freq, args.max_freq)
+        anim = BassPulse(led, args.min_freq, args.max_freq, args.sensitivity)
     else:
         from bibliopixel.animation import MatrixCalibrationTest, MatrixChannelTest
         anim = MatrixCalibrationTest(led)
