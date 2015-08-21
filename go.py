@@ -27,6 +27,8 @@ currentEffectID = 0
 effectsSize = 0
 
 
+updateMode = 0 # 0 - events, 1 - continuous
+
 listen_address = ('localhost', 54321)
 send_address = ('localhost', 12345)
 paired = 0
@@ -135,13 +137,16 @@ class OSCThread(threading.Thread):
         msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
         print "Got pairing message: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
         self.paired = 1
+        global updateMode
 
-        print "Subscribing..."
+        print "Subscribing in", ("continuous" if updateMode else "event" ), "mode"
         #self.c2 = OSC.OSCClient()
         #self.c2.connect(send_address)
         subreq = OSC.OSCMessage("/MashMachine/Global/subscribeObjectsID")
         #  /MashMachine/Global/subscribeObjectsPosition
         subreq.append(listen_address[0])
+        
+        subreg.append(updateMode)
         self.c2.send(subreq)
 
     def objectID_handler(self, addr, tags, stuff, source):
