@@ -2,6 +2,7 @@
 
 import numpy
 import pyaudio
+import alsaaudio
 import threading
 from collections import deque
 
@@ -9,74 +10,41 @@ from bibliopixel.animation import BaseMatrixAnim
 import bibliopixel.colors as colors
 from bibliopixel.led import *
 
-class Recorder:
-    """Simple, cross-platform class to record from the microphone."""
 
+class Recorder(object):
     def __init__(self):
-        """minimal garb is executed when class is loaded."""
-        self.RATE=48000
-        self.BUFFERSIZE=2048 #2048 is a good chunk size
-        self.secToRecord=.1
-        self.threadsDieNow=False
-        self.newAudio=False
-        self.maxVals = deque(maxlen=500)
+        self.killRecording=False
+        self.setup()
 
     def setup(self):
-        """initialize sound card."""
-        #TODO - windows detection vs. alsa or something for linux
-        #TODO - try/except for sound card selection/initiation
-
-        self.buffersToRecord = 1
-
-        self.p = pyaudio.PyAudio()
-        self.inStream = self.p.open(format=pyaudio.paInt16,channels=1,rate=self.RATE,input=True, output=False,frames_per_buffer=self.BUFFERSIZE)
-
-        self.audio=numpy.empty((self.buffersToRecord*self.BUFFERSIZE),dtype=numpy.int16)
+        raise NotImplementedError()
 
     def close(self):
-        """cleanly back out and release sound card."""
-        self.p.close(self.inStream)
-
-    ### RECORDING AUDIO ###
+        raise NotImplementedError()
 
     def getAudio(self):
-        """get a single buffer size worth of audio."""
-        audioString=self.inStream.read(self.BUFFERSIZE)
-        return numpy.fromstring(audioString,dtype=numpy.int16)
+        raise NotImplementedError()
 
-    def record(self,forever=True):
-        """record secToRecord seconds of audio."""
+    def normalize(self):
+        raise NotImplementedError()
+
+    def record(self):
         while True:
-            if self.threadsDieNow: break
-            for i in range(self.buffersToRecord):
-                self.audio[i*self.BUFFERSIZE:(i+1)*self.BUFFERSIZE]=self.getAudio()
-            self.newAudio=True
-            if forever==False: break
+            if self.killRecording:
+                break
+            self.getAudio()
 
-    def continuousStart(self):
-        """CALL THIS to start running forever."""
+    def start(self):
         self.t = threading.Thread(target=self.record)
         self.t.start()
 
-    def continuousEnd(self):
-        """shut down continuous recording."""
-        self.threadsDieNow=True
+    def end(self):
+        self.killRecording=True
 
-    ### MATH ###
     def piff(self, val, chunk_size, sample_rate):
-        '''Return the power array index corresponding to a particular frequency.'''
         return int(chunk_size * val / sample_rate)
 
     def calculate_levels(self, frequency_limits, outbars):
-        '''Calculate frequency response for each channel defined in frequency_limits
-
-        Initial FFT code inspired from the code posted here:
-        http://www.raspberrypi.org/phpBB3/viewtopic.php?t=35838&p=454041
-
-        Optimizations from work by Scott Driscoll:
-        http://www.instructables.com/id/Raspberry-Pi-Spectrum-Analyzer-with-RGB-LED-Strip-/
-        '''
-
         data = self.audio
 
         # if you take an FFT of a chunk of audio, the edges will look like
@@ -97,8 +65,8 @@ class Recorder:
         matrix = numpy.zeros(outbars)
         for i in range(outbars):
             # take the log10 of the resulting sum to approximate how human ears perceive sound levels
-            matrix[i] = numpy.log10(numpy.sum(power[self.piff(frequency_limits[i][0], self.BUFFERSIZE, self.RATE)
-                                              :self.piff(frequency_limits[i][1], self.BUFFERSIZE, self.RATE):1]))
+            matrix[i] = numpy.log10(numpy.sum(power[self.piff(frequency_limits[i][0], self.buffersize, self.RATE)
+                                              :self.piff(frequency_limits[i][1], self.buffersize, self.RATE):1]))
 
         return matrix
 
@@ -126,18 +94,65 @@ class Recorder:
         return frequency_store
 
 
+class AlsaRecorder(Recorder):
+    RATE = 16000
+
+    def setup(self):
+        self.aa = alsaaudio.PCM(alsaaudio.PCM_CAPTURE, alsaaudio.PCM_NORMAL)
+        self.aa.setchannels(1)
+        if self.aa.setrate(self.RATE) != self.RATE:
+            raise Exception("Could not set rate to %s" % self.RATE)
+        self.buffersize = self.aa.setperiodsize(341)
+
+        self.audio = numpy.empty((self.buffersize), dtype=numpy.int16)
+
+    def close(self):
+        self.aa.close()
+
+    def getAudio(self):
+        l, data = self.aa.read()
+        if l:
+            self.audio = numpy.fromstring(data, dtype=numpy.int16)
+
+    def normalize(self, value, sensitivity):
+        return (value - 2) / float(sensitivity * 5)
+
+
+class PyAudioRecorder(Recorder):
+    RATE = 48000
+
+    def setup(self):
+        self.buffersize=2048
+        self.p = pyaudio.PyAudio()
+        self.inStream = self.p.open(format=pyaudio.paInt16,channels=1,rate=self.RATE,input=True, output=False,frames_per_buffer=self.buffersize)
+
+        self.audio=numpy.empty((self.buffersize),dtype=numpy.int16)
+
+    def close(self):
+        self.p.close(self.inStream)
+
+    def getAudio(self):
+        try:
+            audioString=self.inStream.read(self.buffersize)
+            self.audio = numpy.fromstring(audioString,dtype=numpy.int16)
+        except IOError as e:
+            print "PyAudioRecorder getAudio() IOError: %s" % e
+
+    def normalize(self, value, sensitivity):
+        return (value - 10.2) / float(sensitivity)
+
+
 class BaseEQAnim(BaseMatrixAnim):
-    def __init__(self, led, minFrequency, maxFrequency, sensitivity):
+    def __init__(self, recorder, led, minFrequency, maxFrequency, sensitivity):
         super(BaseEQAnim, self).__init__(led)
-        self.rec = Recorder()
-        self.rec.setup()
-        self.rec.continuousStart()
+        self.rec = recorder
+        self.rec.start()
         self.colors = [colors.hue_helper(y, self.height, 0) for y in range(self.height)]
         self.frequency_limits = self.rec.calculate_channel_frequency(minFrequency, maxFrequency, self.width)
         self.sensitivity = sensitivity
 
     def endRecord(self):
-        self.rec.continuousEnd()
+        self.rec.end()
 
 
 class EQ(BaseEQAnim):
@@ -146,7 +161,7 @@ class EQ(BaseEQAnim):
         eq_data = self.rec.calculate_levels(self.frequency_limits, self.width)
         for x in range(self.width):
             # normalize output
-            height = (eq_data[x] - 10.2) / float(self.sensitivity)
+            height = self.rec.normalize(eq_data[x], self.sensitivity)
             if height < .05:
                 height = .05
             elif height > 1.0:
@@ -168,7 +183,7 @@ class BassPulse(BaseEQAnim):
 
         # only take bass values and draw circles with that value
         # normalize output
-        height = (eq_data[0] - 9.0) / float(self.sensitivity)
+        height = self.rec.normalize(eq_data[x], self.sensitivity)
         if height < .05:
             height = .05
         elif height > 1.0:

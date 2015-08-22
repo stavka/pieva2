@@ -4,17 +4,18 @@ import argparse
 from bibliopixel import LEDMatrix
 from bibliopixel.led import *
 
-from recorder import Recorder, EQ, BassPulse
+from recorder import AlsaRecorder, PyAudioRecorder, EQ, BassPulse
 from pbdriver import DriverPieva, DriverPievaX4, DriverPievaX4Rev
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Spectrum analyzer')
+    parser.add_argument('--recorder', choices=['pyaudio', 'alsa'], default='alsa')
     parser.add_argument('--display', choices=['full', 'x4', 'x4rev'], default='x4')
     parser.add_argument('--anim', choices=['eq', 'bass', 'test'], default='eq')
-    parser.add_argument('--fps', default=20)
+    parser.add_argument('--fps', default=20, type=int)
     parser.add_argument('--min_freq', default=50)    # 50 Hz
     parser.add_argument('--max_freq', default=15000) # 15000 Hz
-    parser.add_argument('--sensitivity', default=3)  # lower is more sensitive
+    parser.add_argument('--sensitivity', default=3, type=float)  # lower is more sensitive
     args = parser.parse_args()
 
     if args.display == 'full':
@@ -32,10 +33,15 @@ if __name__ == '__main__':
     led = LEDMatrix(driver, width=w, height=h, serpentine=False)
     led.setMasterBrightness(255)
 
+    if args.recorder == 'alsa':
+        recorder = AlsaRecorder()
+    else:
+        recorder = PyAudioRecorder()
+
     if args.anim == 'eq':
-        anim = EQ(led, args.min_freq, args.max_freq, args.sensitivity)
+        anim = EQ(recorder, led, args.min_freq, args.max_freq, args.sensitivity)
     elif args.anim == 'bass':
-        anim = BassPulse(led, args.min_freq, args.max_freq, args.sensitivity)
+        anim = BassPulse(recorder, led, args.min_freq, args.max_freq, args.sensitivity)
     else:
         from bibliopixel.animation import MatrixCalibrationTest, MatrixChannelTest
         anim = MatrixCalibrationTest(led)
