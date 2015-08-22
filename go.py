@@ -23,7 +23,7 @@ targetFPS = 24
 targetFrameTime = 1./targetFPS
 timeCounter = int(random.random() * 65535)
 
-currentEffectID = 0
+currentEffectID = 4
 effectsSize = 0
 
 
@@ -146,7 +146,7 @@ class OSCThread(threading.Thread):
         #  /MashMachine/Global/subscribeObjectsPosition
         subreq.append(listen_address[0])
 
-        subreq.append(updateMode)
+        #subreq.append(updateMode)
         self.c2.send(subreq)
 
     def objectID_handler(self, addr, tags, stuff, source):
