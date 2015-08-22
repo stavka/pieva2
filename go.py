@@ -93,7 +93,7 @@ def switch_effects(effectID = None):
     if currentEffectID >= effectsSize:
         currentEffectID = 0
     print "Switched effect to: ", currentEffectID
-        
+
 
 
 class OSCThread(threading.Thread):
@@ -145,8 +145,8 @@ class OSCThread(threading.Thread):
         subreq = OSC.OSCMessage("/MashMachine/Global/subscribeObjectsID")
         #  /MashMachine/Global/subscribeObjectsPosition
         subreq.append(listen_address[0])
-        
-        subreg.append(updateMode)
+
+        subreq.append(updateMode)
         self.c2.send(subreq)
 
     def objectID_handler(self, addr, tags, stuff, source):
@@ -339,7 +339,7 @@ def main():
 
             if dotargetFPS:
                 endTime = time.time()
-            
+
                 timeToWait = targetFrameTime - (endTime - startTime)
                 #print"Frame time: ", (endTime - startTime)
                 if timeToWait < 0:
