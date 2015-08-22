@@ -30,8 +30,8 @@ Development
 ===========
  * install python dependencies: `pip install svg.path numpy`
  * clone dependencies:
-   * `git clone https://github.com/scanlime/fadecandy.git`
-   * `git clone https://github.com/zestyping/openpixelcontrol.git`
+   * `git submodule init`
+   * `git submodule update`
  * build openpixelcontrol: `cd openpixelcontrol && make`
  * build and install pixelmapper: `./setup.py install`
  * install pyOSC: `pip install pyOSC --pre`
