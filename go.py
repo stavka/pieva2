@@ -317,17 +317,17 @@ def main():
 
 
         def on_new_object(groupid, objectid):
-            for effect in effects:
-                config_id = alleffects.add_config()
-                known_objects[(groupid, objectid)] = config_id
+            for effect in alleffects:
+                config_id = effect.add_config()
+            known_objects[(groupid, objectid)] = config_id
         def on_removed_object(groupid, objectid):
             for effect in alleffects:
                 config_id = known_objects[(groupid, objectid)]
                 effect.remove_config(config_id)
             del known_objects[(groupid, objectid)]
 
-            oscThread.add_new_object_listener(on_new_object)
-            oscThread.add_removed_object_listener(on_removed_object)
+        oscThread.add_new_object_listener(on_new_object)
+        oscThread.add_removed_object_listener(on_removed_object)
 
         while True:
             startTime = time.time()
