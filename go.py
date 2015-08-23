@@ -140,14 +140,18 @@ class OSCThread(threading.Thread):
         global updateMode
 
         print "Subscribing in", ("continuous" if updateMode else "event" ), "mode"
-        #self.c2 = OSC.OSCClient()
-        #self.c2.connect(send_address)
-        subreq = OSC.OSCMessage("/MashMachine/Global/subscribeObjectsID")
-        #  /MashMachine/Global/subscribeObjectsPosition
-        subreq.append(listen_address[0])
 
-        #subreq.append(updateMode)
+        subreq = OSC.OSCMessage("/MashMachine/Global/subscribeObjectsID")
+        subreq.append(listen_address[0])
+        subreq.append(updateMode)
         self.c2.send(subreq)
+    
+        subreq = OSC.OSCMessage("/MashMachine/Global/subscribeObjectsPosition")
+        subreq.append(listen_address[0])
+        subreq.append(updateMode)
+        self.c2.send(subreq)
+    
+    
 
     def objectID_handler(self, addr, tags, stuff, source):
 
@@ -176,6 +180,28 @@ class OSCThread(threading.Thread):
             finally:
                 self.objectID_lock.release()
 
+    def objectPosition_handler(self, addr, tags, stuff, source):
+    
+        msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
+        #print "Got Position ID message: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
+        
+        if self.objectPositions_lock.acquire(False):
+            try:
+                self.positions = {}
+                for i in xrange(0, len(stuff), 5):
+                    group = stuff[i]
+                    objectid = stuff[i+1]
+                    x = stuff[i+2]
+                    y = stuff[i+3]
+                    z = stuff[i+4]
+                    print "Position of :", group, ":", objectid, "is", x, y, z
+                    self.positions.update({(group, objectid):(x,y,z)})
+        
+            finally:
+                self.objectPositions_lock.release()
+
+
+
     def add_new_object_listener(self, listener):
         """Listener: func(group, object_id)."""
         self.new_object_listener = listener
@@ -192,6 +218,9 @@ class OSCThread(threading.Thread):
 
         self.objectID_lock = threading.Lock()
         self.activeObjects = set()
+        
+        self.objectPositions_lock = threading.Lock()
+        self.positions = {}
 
         self.new_object_listener = None
         self.removed_object_listener = None
@@ -210,7 +239,9 @@ class OSCThread(threading.Thread):
         #s.addMsgHandler("/MM_Remote/Control/activeObjectsID", pallete_handler)
         self.s.addMsgHandler("/MM_Remote/Control/activeObjectsID", self.objectID_handler)
 
-        self.s.addMsgHandler("/MM_Remote/Control/activeObjectsPosition", self.pallete_handler)
+        #self.s.addMsgHandler("/MM_Remote/Control/activeObjectsPosition", self.pallete_handler)
+        self.s.addMsgHandler("/MM_Remote/Control/activeObjectsPosition", self.objectPosition_handler)
+        
         self.s.addMsgHandler("/MM_Remote/Global/pairingAccepted", self.pairing_handler)
 
         print "Registered Callback-functions:"

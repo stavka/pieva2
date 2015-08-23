@@ -22,11 +22,19 @@ try:
     subreq.append(2)
     for arg in sys.argv[1:]:
         subreq.append(int(arg))
-    print "Sending...", subreq
+    print "Sending ids...", subreq
     c2.send(subreq)
 
     
+    subreq = OSC.OSCMessage("/MM_Remote/Control/activeObjectsPosition")
+    for i in [0, 1, 228, 347, 273, 0, 3, 391, 352, 276]:
+        subreq.append(i)
+
+    print "Sending positions...", subreq
+    c2.send(subreq)
+
+
 except(OSC.OSCClientError):
-    print "Sending failed.." 
+    print "Sending failed.."
     
       
