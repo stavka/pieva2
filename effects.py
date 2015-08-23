@@ -66,7 +66,7 @@ class Effect(object):
         self.sizey = sizey
         self.configs = {}
 
-    def drawFrame(self):
+    def drawFrame(self, positions):
         bitmap = np.zeros([self.sizex,self.sizey])
         bitmap[20:40, 20:40] = self.palette[0]  ###  example
         return bitmap
@@ -134,7 +134,7 @@ class CenterSquareFillEffect(Effect):
         self.centery = int(self.sizey / 2)
         self.bitmap = np.zeros([self.sizex,self.sizey])
 
-    def drawFrame(self):
+    def drawFrame(self, positions):
 
         i = self.framenumber
 
@@ -153,7 +153,7 @@ class CenterSquareFillEffect(Effect):
         return self.bitmap
 
 class NumpyEffect(Effect):
-    def drawFrame(self):
+    def drawFrame(self, positions):
         i = self.framenumber
         rgba = self.drawNumpyFrame(i)
 
@@ -205,7 +205,7 @@ class WaveEffect(Effect):
             self.size = self.sizey
         self.framenumber = 9
 
-    def drawFrame(self):
+    def drawFrame(self, positions):
 
         bitmap = np.zeros([self.sizex,self.sizey])
 

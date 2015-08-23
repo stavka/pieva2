@@ -183,7 +183,7 @@ class OSCThread(threading.Thread):
     def objectPosition_handler(self, addr, tags, stuff, source):
     
         msg_string = "%s [%s] %s" % (addr, tags, str(stuff))
-        #print "Got Position ID message: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
+        print "Got Position ID message: '%s' from %s\n" % (msg_string, OSC.getUrlStr(source))
         
         if self.objectPositions_lock.acquire(False):
             try:
@@ -194,7 +194,7 @@ class OSCThread(threading.Thread):
                     x = stuff[i+2]
                     y = stuff[i+3]
                     z = stuff[i+4]
-                    print "Position of :", group, ":", objectid, "is", x, y, z
+                    #print "Position of :", group, ":", objectid, "is", x, y, z
                     self.positions.update({(group, objectid):(x,y,z)})
         
             finally:
@@ -365,8 +365,10 @@ def main():
             if currentEffectID == 0: #oscThread.paired == 1 or oscThread.paired == 0:
                 screen.render(width, height, timeCounter/640., [grass, sun], mainPalette)
             else:
-                bitmap = alleffects[currentEffectID].drawFrame()
+                bitmap = alleffects[currentEffectID].drawFrame(oscThread.positions)
                 screen.send(bitmap)
+                #if oscThread.positions:
+                    #print oscThread.positions
 
             if dotargetFPS:
                 endTime = time.time()
