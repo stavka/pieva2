@@ -48,7 +48,7 @@ cdef func_(np.ndarray[np.double_t, ndim=2] res, int t, int sizex, int sizey, dou
 
 @cython.cdivision(True) # turn off /0 check.
 @cython.boundscheck(False) # turn of bounds-checking for entire function
-cdef inline  make_mask_(np.ndarray[np.double_t, ndim=2] res, int sizex, int sizey, int t, double centerx, double centery, double scalex, double scaley, double start_time, double speed):
+cdef inline make_mask_(np.ndarray[np.double_t, ndim=2] res, int sizex, int sizey, int t, double centerx, double centery, double scalex, double scaley, double start_time, double speed):
 
     cdef double age = t - start_time
     cdef double sigm = (age + 5) * speed

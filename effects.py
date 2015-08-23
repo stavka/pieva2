@@ -15,7 +15,13 @@ import numpy as np
 #from screen import *
 import sys
 
-import c_ripples
+try:
+  import c_ripples as ripples
+except ImportError:
+  import warnings
+  warnings.warn("Using slow ripples module. Consider using cython version "
+                "instead. For this:\n  python setup.py build_ext && cp build/lib*/c_ripples* .")
+  import slow_ripples as ripples
 
 class Bitmap():
 
@@ -64,7 +70,7 @@ class Effect(object):
         bitmap = np.zeros([self.sizex,self.sizey])
         bitmap[20:40, 20:40] = self.palette[0]  ###  example
         return bitmap
-    
+
     def make_default_palette(self):
         rgb0 = (00, 0xa5, 0xa5)
         rgb1 = (00, 0xff, 0xff)
@@ -257,13 +263,11 @@ class RipplesEffect(NumpyEffect):
     def __init__(self, auto_reset_frames=200, *args, **kwargs):
         # Reconfigre after this many frames. None means don't autoreconfigure.
         self.period = auto_reset_frames
-        
+
         return super(RipplesEffect, self).__init__(*args, **kwargs)
 
-
-
     def func(self, t, x, y, config):
-        return c_ripples.func(t, x, y, config)
+        return ripples.func(t, x, y, config)
 
     def drawNumpyFrame(self, i):
         if self.period and i % self.period == 0:
@@ -276,32 +280,32 @@ class RipplesEffect(NumpyEffect):
         y = np.arange(0, self.sizey)
         xx, yy = np.meshgrid(x, y)
 
-        ripples = [c_ripples.render_config(self.sizex, self.sizey, i, config) for config in self.configs.values()]
+        all_ripples = [ripples.render_config(self.sizex, self.sizey, i, config) for config in self.configs.values()]
 
         # Null ripple ensures black background.
-        null_ripple = np.zeros_like(ripples[0])
+        null_ripple = np.zeros_like(all_ripples[0])
         null_ripple[:,:,3]=0.01
-        ripples.append(null_ripple)
+        all_ripples.append(null_ripple)
 
         with Benchmark("blend"):
-            res = self.blend_rgba_ripples(ripples)
+            res = self.blend_rgba_ripples(all_ripples)
         return res
 
-    def blend_rgba_ripples(self, ripples):
+    def blend_rgba_ripples(self, all_ripples):
         """Blends a list of ripples.
 
         Args:
-            ripples: list of RGBA ripple matrices.
+            all_ripples: list of RGBA ripple matrices.
         Returns:
             Single RGB ripple image.
         """
-        total_rgba = sum(ripples)
+        total_rgba = sum(all_ripples)
         total_a = np.atleast_3d(total_rgba[:,:,3])
 
         # Same shape as ripple, but alpha channel is ignored.
-        res = np.zeros(ripples[0].shape[:2] + (4,))
+        res = np.zeros(all_ripples[0].shape[:2] + (4,))
 
-        for ripple in ripples:
+        for ripple in all_ripples:
             alpha = np.atleast_3d(ripple[:,:,3])
             res += ripple * alpha
 
