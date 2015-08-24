@@ -99,22 +99,39 @@ class Effect(object):
         self.configs = {}
         [self.add_config() for i in range(num_sources)]
 
-    def make_one_config(self):
+    def make_one_config(self, x=None, y=None, z=None):
         config_id = max([0] + self.configs.keys()) + 1
 
-        return config_id, {
-                'center': np.random.uniform([0, 0], [self.sizex, self.sizey]),
-                'radiusx': np.random.normal(0),
-                'radiusy': np.random.normal(0),
+        if( x is None or y is None or z is None):
+            return config_id, {
+                    'center': np.random.uniform([0, 0], [self.sizex, self.sizey]),
+                    'radiusx': np.random.normal(0),
+                    'radiusy': np.random.normal(0),
+    
+                    'scalex': np.random.normal(2, 1),
+                    'scaley': np.random.normal(2, 1),
+    
+                    'power': np.random.normal(0.5, 0.1),
+                    'speed': np.random.normal(0.1, 0.01),
+                    'start_time': self.framenumber,
+                    'palette': self.get_palette(),
+                    }
+        else:
+            return config_id, {
+                    'center': [ x, y],
+                    'radiusx': z,
+                    'radiusy': z,
+    
+                    'scalex': 2 + z,
+                    'scaley': 2 + z,
+    
+                    'power': np.random.normal(0.5, 0.1),
+                    'speed': np.random.normal(0.1, 0.01),
+                    'start_time': self.framenumber,
+                    'palette': self.get_palette(),
+                    }
+              
 
-                'scalex': np.random.normal(2, 1),
-                'scaley': np.random.normal(2, 1),
-
-                'power': np.random.normal(0.5, 0.1),
-                'speed': np.random.normal(0.1, 0.01),
-                'start_time': self.framenumber,
-                'palette': self.get_palette(),
-        }
 
     def add_config(self, config_id=None, config=None):
         if config is None:
@@ -312,6 +329,26 @@ class RipplesEffect(NumpyEffect):
         return res[:,:,:3] / total_a
 
 
+class PositionRipplesEffect(RipplesEffect):
+    
+    def add_config(self, config_id=None, config=None):
+        pass
+
+    def remove_config(self, config_id):
+        pass
+    
+    def drawFrame(self, positions):
+        
+        for key, position in positions.iteritems():
+            x = position[0] * self.sizex / 600.0
+            y = position[1] * self.sizey / 600.0
+            z = position[2] / 500.0
+            config_id, config = self.make_one_config(x,y,z)
+            self.configs[config_id] = config
+        
+        return super(PositionRipplesEffect, self).drawFrame(positions)
+
+
 ### testing code
 
 
@@ -334,12 +371,14 @@ def main():
         #currentEffect = WaveEffect()
         #currentEffect = WaveEffect(direction = 1)
         #currentEffect = CenterCircleFillEffect()
-        currentEffect = RipplesEffect()
+        #currentEffect = RipplesEffect()
+        currentEffect = PositionRipplesEffect()
 
         #currentEffect = CenterSquareFillEffect()
 
         for f in range(1000):
-            bitmap = currentEffect.drawFrame().astype(np.uint32)
+            bitmap = currentEffect.drawFrame({(0, 1): (300, 400, 300),
+                                              (0, 2): (100, 200, 200)}).astype(np.uint32)
 
             r, g, b = to_rgb(bitmap)
 
