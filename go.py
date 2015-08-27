@@ -16,14 +16,14 @@ import effects
 
 
 screen = Screen(sections)#, ['10.0.1.3:7890'])
-screen.dimm(0)
+#screen.dimm(0)
 
 dotargetFPS = 1
 targetFPS = 24
 targetFrameTime = 1./targetFPS
 timeCounter = int(random.random() * 65535)
 
-currentEffectID = 4
+currentEffectID = 2
 effectsSize = 0
 
 
@@ -258,7 +258,7 @@ class OSCThread(threading.Thread):
         #subreq = OSC.OSCMessage("/MashMachine/Control/getActiveObjectsPosition")
 
 
-        tries = 10
+        tries = 1
         self.paired = 0
 
         try:
