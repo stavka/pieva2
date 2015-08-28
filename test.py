@@ -1,6 +1,6 @@
 #!/usr/bin/python
 from argparse import ArgumentParser
-from pieva import *
+from pieva_prod import *
 import fastopc as opc
 import time
 from screen import *
@@ -11,7 +11,7 @@ def testPattern(pattern):
     global testDotIndex
     pixels = []
     for i in range(len(pattern)):
-        if i == testDotIndex:
+        if True: #i == testDotIndex:
             pixels += testDot
         else:
             pixels += testBlank
@@ -27,7 +27,7 @@ def blank(pattern):
     return pixels
 
 def test(testSectionIdx):
-    for t in range(len(sections[testSectionIdx]['pattern'])):
+    for t in [0]: # range(len(sections[testSectionIdx]['pattern'])):
         s = 0
         pixels = []
         startTime = time.time()
@@ -43,7 +43,7 @@ def test(testSectionIdx):
         print "pushing pixels in", (endTime - startTime), "s"
         if None != screen:
             screen.putPixels(0, pixels)
-        time.sleep(0.05)
+        #time.sleep(0.1)
 
 parser = ArgumentParser(description = "Play test sequences")
 parser.add_argument("testSection", type=int, action="store", default=None, nargs="?", help=" - which section to test. All sections will be tested if omitted")
@@ -177,6 +177,7 @@ if None != cliargs.image:
 
 while True:
     test(currSection)
+    raw_input('section ' + str(currSection))
     if None == cliargs.testSection:
         currSection += 1
         if currSection >= len(sections):
